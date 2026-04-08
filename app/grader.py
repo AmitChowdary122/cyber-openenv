@@ -1,6 +1,10 @@
 from typing import Dict, Any
 
 def grade_state(state: Dict[str, Any]) -> float:
+    #SAFETY: handle empty or invalid state
+    if not state or not state.get("system_state"):
+        return 0.05
+
     sys_state = state.get("system_state", {})
     task = state.get("current_task", {})
     task_id = task.get("id")
@@ -13,16 +17,14 @@ def grade_state(state: Dict[str, Any]) -> float:
 
     score = 0.0
 
-    # =========================
-    # SCORING LOGIC
-    # =========================
-
+    # EASY
     if task_id == "easy":
         if identified in attackers:
             score = 0.95
         else:
             score = 0.05
 
+    # MEDIUM
     elif task_id == "medium":
         if identified in attackers:
             score += 0.4
@@ -32,6 +34,7 @@ def grade_state(state: Dict[str, Any]) -> float:
         if score == 0.0:
             score = 0.05
 
+    # HARD
     elif task_id == "hard":
         false_positives = [ip for ip in blocked_ips if ip not in attackers]
 
@@ -53,10 +56,7 @@ def grade_state(state: Dict[str, Any]) -> float:
     else:
         score = 0.05
 
-    # =========================
-    # FINAL CLAMP (BULLETPROOF)
-    # =========================
-
+    # FINAL CLAMP (ABSOLUTE SAFETY)
     if score <= 0.0:
         score = 0.05
     elif score >= 1.0:
