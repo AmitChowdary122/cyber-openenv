@@ -2,25 +2,16 @@
 """
 Reward function that encourages investigation, correlation, and careful blocking.
 Penalises blind guessing and false positives. Designed to make the hard task
-require genuine multi‑step reasoning.
+require genuine multi-step reasoning.
 """
 from app.models import Reward
 from typing import Dict, Any
 
+
 def compute_reward(action_type: str, parameters: Dict[str, Any], state: Any) -> Reward:
-    """
-    Compute reward for a single step.
-    - Step penalty: -0.05 (discourages brute‑force)
-    - Large positive for correct block (+0.5 + bonus)
-    - Severe penalty for wrong block (-0.6)
-    - Small positive for investigation (+0.05 if real attacker, +0.01 otherwise)
-    - Bonus for correlation (+0.02 if identify after investigation)
-    - Extra penalty for blocking without investigation (-0.05)
-    - False positive escalation penalty (-0.1)
-    """
     reward_val = 0.0
 
-    # Extract state
+    # Extract state safely
     if hasattr(state, 'system_state'):
         system_state = state.system_state
         suspicion_scores = getattr(state, 'suspicion_scores', {})
@@ -35,7 +26,10 @@ def compute_reward(action_type: str, parameters: Dict[str, Any], state: Any) -> 
     # Step penalty
     reward_val -= 0.05
 
-    # Action‑specific rewards
+    # =========================
+    # ACTION REWARDS
+    # =========================
+
     if action_type == "analyze_log":
         reward_val += 0.1
         if system_state.get("threat_level", 0.0) > 0.5:
@@ -44,19 +38,30 @@ def compute_reward(action_type: str, parameters: Dict[str, Any], state: Any) -> 
     elif action_type == "identify_attacker":
         ip = parameters.get("ip")
         if ip and ip in attackers:
-            reward_val += 0.4 + 0.1   # identification reward
+            reward_val += 0.5
+            if investigation_history:
+                reward_val += 0.02  # correlation bonus
         else:
             reward_val -= 0.5
 
     elif action_type == "block_ip":
         ip = parameters.get("ip")
         identified = system_state.get("identified_attacker")
+
+        # 🔥 PATCH 3: FORCE INVESTIGATION
+        if ip and investigation_history.get(ip, 0) == 0:
+            reward_val -= 0.2  # heavy penalty for blind blocking
+
         if ip and ip in attackers:
-            reward_val += 0.5   # correct block
+            reward_val += 0.5
             if identified == ip:
-                reward_val += 0.2   # bonus if identified first
+                reward_val += 0.2
         else:
-            reward_val -= 0.6   # wrong block – heavy penalty
+            reward_val -= 0.6  # wrong block
+
+        # extra false positive penalty
+        if ip and ip not in attackers:
+            reward_val -= 0.1
 
     elif action_type == "quarantine_system":
         reward_val += 0.2
@@ -67,50 +72,42 @@ def compute_reward(action_type: str, parameters: Dict[str, Any], state: Any) -> 
         ip = parameters.get("ip")
         if ip:
             inv_count = investigation_history.get(ip, 0)
+
+            # 🔥 BOOST INVESTIGATION VALUE
             if ip in attackers:
-                reward_val += 0.05   # investigating real attacker is valuable
+                reward_val += 0.08
             else:
-                reward_val += 0.01   # still some benefit (elimination)
+                reward_val += 0.02
+
+            # discourage repeated spam investigation
             if inv_count > 1:
-                reward_val -= 0.02   # don't investigate same IP repeatedly
+                reward_val -= 0.02
         else:
             reward_val -= 0.1
 
     else:
         reward_val -= 0.2
 
-    # Reasoning bonuses
-    # 1. Consistent investigation when threat is high
+    # =========================
+    # REASONING BONUSES
+    # =========================
+
     if action_type in ("analyze_log", "investigate_ip") and system_state.get("threat_level", 0.0) > 0.3:
         reward_val += 0.03
 
-    # 2. Correlation reward: identify attacker after having investigated at least one IP
-    if action_type == "identify_attacker":
-        ip = parameters.get("ip")
-        if ip and ip in attackers and investigation_history:
-            reward_val += 0.02
-
-    # Penalty for blocking without any prior investigation
-    if action_type == "block_ip":
-        ip = parameters.get("ip")
-        if ip and ip not in attackers and investigation_history.get(ip, 0) == 0:
-            reward_val -= 0.05
-
-    # Extra false positive escalation penalty
-    if action_type == "block_ip" and ip and ip not in attackers:
-        reward_val -= 0.1
-
-    # Legacy shaping (kept for easy/medium)
+    # bonus if identified attacker has strong suspicion
     if system_state.get("identified_attacker"):
         ip = system_state["identified_attacker"]
         if suspicion_scores.get(ip, 0.0) > 0.6:
             reward_val += 0.05
 
+    # penalize high suspicion on benign IPs
     benign_ips = [ip for ip in suspicion_scores if ip not in attackers]
     for ip in benign_ips:
         if suspicion_scores.get(ip, 0.0) > 0.5:
             reward_val -= 0.02
 
+    # slight bonus for complex scenarios
     if len(attackers) > 2 and action_type == "analyze_log":
         reward_val += 0.02
 
