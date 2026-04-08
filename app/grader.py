@@ -1,17 +1,5 @@
 from typing import Dict, Any
 
-def _clamp(score: float) -> float:
-    """
-    Ensure score is strictly between (0, 1)
-    """
-    eps = 1e-3
-    if score <= 0.0:
-        return eps
-    if score >= 1.0:
-        return 1.0 - eps
-    return score
-
-
 def grade_state(state: Dict[str, Any]) -> float:
     sys_state = state.get("system_state", {})
     task = state.get("current_task", {})
@@ -25,28 +13,33 @@ def grade_state(state: Dict[str, Any]) -> float:
 
     score = 0.0
 
-    # 🟢 EASY
-    if task_id == "easy":
-        score = 1.0 if identified in attackers else 0.0
-        return _clamp(score)
+    # =========================
+    # SCORING LOGIC
+    # =========================
 
-    # 🟡 MEDIUM
+    if task_id == "easy":
+        if identified in attackers:
+            score = 0.95
+        else:
+            score = 0.05
+
     elif task_id == "medium":
         if identified in attackers:
-            score += 0.5
+            score += 0.4
         if identified in attackers and identified in blocked_ips:
             score += 0.5
-        return _clamp(score)
 
-    # 🔴 HARD
+        if score == 0.0:
+            score = 0.05
+
     elif task_id == "hard":
         false_positives = [ip for ip in blocked_ips if ip not in attackers]
 
         if false_positives:
-            score = 0.0
+            score = 0.05
         else:
             if identified in attackers:
-                score += 0.4
+                score += 0.3
 
             if identified in attackers and identified in blocked_ips:
                 score += 0.4
@@ -54,6 +47,19 @@ def grade_state(state: Dict[str, Any]) -> float:
             if threat < 0.2:
                 score += 0.2
 
-        return _clamp(score)
+        if score == 0.0:
+            score = 0.05
 
-    return _clamp(0.0)
+    else:
+        score = 0.05
+
+    # =========================
+    # FINAL CLAMP (BULLETPROOF)
+    # =========================
+
+    if score <= 0.0:
+        score = 0.05
+    elif score >= 1.0:
+        score = 0.95
+
+    return float(score)
