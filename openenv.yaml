@@ -1,0 +1,65 @@
+environment:
+  name: "CyberEnv"
+  version: "0.1.0"
+  description: "Cybersecurity incident response simulation environment for AI agents."
+  author: "Amit Chowdary"
+  tags:
+    - cybersecurity
+    - incident-response
+    - reinforcement-learning
+    - openenv
+
+api:
+  base_url: "http://localhost:8000"
+
+endpoints:
+  reset: "/reset"
+  step: "/step"
+  state: "/state"
+  grade: "/grade"
+  tasks: "/tasks"
+
+models:
+  observation:
+    type: object
+    properties:
+      logs:
+        type: array
+        items:
+          type: string
+      alerts:
+        type: array
+        items:
+          type: string
+      system_state:
+        type: object
+      goal:
+        type: string
+
+  action:
+    type: object
+    properties:
+      action_type:
+        type: string
+        enum:
+          - analyze_log
+          - identify_attacker
+          - block_ip
+          - quarantine_system
+          - investigate_ip
+      parameters:
+        type: object
+
+  reward:
+    type: object
+    properties:
+      value:
+        type: number
+
+tasks:
+  - id: easy
+    description: "Identify the attacker IP from logs"
+  - id: medium
+    description: "Identify and block the attacker"
+  - id: hard
+    description: "Fully secure system with minimal threat level"
