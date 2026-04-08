@@ -1,4 +1,17 @@
 from typing import Dict, Any
+
+def _clamp(score: float) -> float:
+    """
+    Ensure score is strictly between (0, 1)
+    """
+    eps = 1e-3
+    if score <= 0.0:
+        return eps
+    if score >= 1.0:
+        return 1.0 - eps
+    return score
+
+
 def grade_state(state: Dict[str, Any]) -> float:
     sys_state = state.get("system_state", {})
     task = state.get("current_task", {})
@@ -12,33 +25,35 @@ def grade_state(state: Dict[str, Any]) -> float:
 
     score = 0.0
 
-    # 🟢 EASY — must correctly identify attacker
+    # 🟢 EASY
     if task_id == "easy":
-        return 1.0 if identified in attackers else 0.0
+        score = 1.0 if identified in attackers else 0.0
+        return _clamp(score)
 
-    # 🟡 MEDIUM — must correctly identify AND block attacker
+    # 🟡 MEDIUM
     elif task_id == "medium":
         if identified in attackers:
             score += 0.5
         if identified in attackers and identified in blocked_ips:
             score += 0.5
-        return min(score, 1.0)
+        return _clamp(score)
 
-    # 🔴 HARD — already correct (keep your version)
+    # 🔴 HARD
     elif task_id == "hard":
         false_positives = [ip for ip in blocked_ips if ip not in attackers]
+
         if false_positives:
-            return 0.0
+            score = 0.0
+        else:
+            if identified in attackers:
+                score += 0.4
 
-        if identified in attackers:
-            score += 0.4
+            if identified in attackers and identified in blocked_ips:
+                score += 0.4
 
-        if identified in attackers and identified in blocked_ips:
-            score += 0.4
+            if threat < 0.2:
+                score += 0.2
 
-        if threat < 0.2:
-            score += 0.2
+        return _clamp(score)
 
-        return max(0.0, min(score, 1.0))
-
-    return 0.0
+    return _clamp(0.0)
