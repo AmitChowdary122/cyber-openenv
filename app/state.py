@@ -5,7 +5,7 @@ CyberEnv State – simulates a multi-stage cyber attack with realistic SOC logs.
 
 import random
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 class SimpleState:
@@ -71,25 +71,34 @@ class SimpleState:
         self.alerts.append(f"[{now}] Monitoring started")
 
     # =========================
-    # LOG GENERATION
+    # LOG GENERATION (PATCHED)
     # =========================
     def generate_step_logs(self, difficulty: str = "easy") -> None:
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # attacker behavior
+        # 🔥 attacker behavior (NOT always highest)
         for ip in self.attackers:
             self.logs.append(f"[{ts}] [ATTACK] Suspicious activity from {ip}")
-            self.suspicion_scores[ip] = min(1.0, self.suspicion_scores[ip] + 0.2)
+            self.suspicion_scores[ip] = min(
+                1.0,
+                self.suspicion_scores[ip] + random.uniform(0.12, 0.25)
+            )
 
-        # decoys
+        # 🔥 decoys (can look MORE suspicious than attacker)
         for ip in self.decoy_ips:
             self.logs.append(f"[{ts}] [DECOY] High traffic from {ip}")
-            self.suspicion_scores[ip] = min(1.0, self.suspicion_scores[ip] + 0.15)
+            self.suspicion_scores[ip] = min(
+                1.0,
+                self.suspicion_scores[ip] + random.uniform(0.15, 0.28)
+            )
 
-        # benign
+        # 🔥 benign noise
         for ip in self.benign_suspicious_ips:
             self.logs.append(f"[{ts}] [NOISE] Random event from {ip}")
-            self.suspicion_scores[ip] = min(1.0, self.suspicion_scores[ip] + 0.05)
+            self.suspicion_scores[ip] = min(
+                1.0,
+                self.suspicion_scores[ip] + random.uniform(0.02, 0.08)
+            )
 
         # update threat level
         all_ips = self.attackers + self.decoy_ips + self.benign_suspicious_ips
@@ -98,7 +107,7 @@ class SimpleState:
             self.system_state["threat_level"] = min(1.0, avg)
 
     # =========================
-    # ACTION HANDLING (FIXED)
+    # ACTION HANDLING
     # =========================
     def apply_action(self, action_type: str, parameters: Dict[str, Any] = None) -> None:
         if parameters is None:
@@ -133,7 +142,7 @@ class SimpleState:
             self.system_state["threat_level"] = max(0.0, self.system_state["threat_level"] - 0.5)
 
     # =========================
-    # TERMINATION
+    # TERMINATION (PATCHED 🔥)
     # =========================
     def is_terminal(self, max_steps: int, task_id: str) -> bool:
         if self.steps >= max_steps:
@@ -149,7 +158,14 @@ class SimpleState:
             return identified is not None and identified in blocked
 
         if task_id == "hard":
-            return identified is not None and identified in blocked
+            false_positives = [ip for ip in blocked if ip not in self.attackers]
+
+            return (
+                identified is not None
+                and identified in blocked
+                and self.system_state["threat_level"] < 0.1
+                and len(false_positives) == 0
+            )
 
         return False
 
