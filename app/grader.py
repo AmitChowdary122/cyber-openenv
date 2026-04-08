@@ -1,7 +1,4 @@
-# app/grader.py
 from typing import Dict, Any
-
-
 def grade_state(state: Dict[str, Any]) -> float:
     sys_state = state.get("system_state", {})
     task = state.get("current_task", {})
@@ -11,44 +8,37 @@ def grade_state(state: Dict[str, Any]) -> float:
     blocked_ips = sys_state.get("blocked_ips", [])
     threat = sys_state.get("threat_level", 1.0)
 
+    attackers = state.get("attackers", [])
+
     score = 0.0
 
-    # 🟢 EASY — identify attacker (unchanged)
+    # 🟢 EASY — must correctly identify attacker
     if task_id == "easy":
-        return 1.0 if identified else 0.0
+        return 1.0 if identified in attackers else 0.0
 
-    # 🟡 MEDIUM — identify + block (unchanged)
+    # 🟡 MEDIUM — must correctly identify AND block attacker
     elif task_id == "medium":
-        if identified:
+        if identified in attackers:
             score += 0.5
-        if identified and identified in blocked_ips:
+        if identified in attackers and identified in blocked_ips:
             score += 0.5
         return min(score, 1.0)
 
-    # 🔴 HARD — full mitigation with penalty for false positives
+    # 🔴 HARD — already correct (keep your version)
     elif task_id == "hard":
-        # Retrieve list of true attackers from state (added in env.state())
-        attackers = state.get("attackers", [])
-
-        # Enforce strict correctness: any false positive results in failure
         false_positives = [ip for ip in blocked_ips if ip not in attackers]
         if false_positives:
             return 0.0
 
-        # Correct identification
-        if identified:
+        if identified in attackers:
             score += 0.4
 
-        # Correct blocking: identified attacker is in blocked_ips
-        if identified and identified in blocked_ips:
+        if identified in attackers and identified in blocked_ips:
             score += 0.4
 
-        # Low threat bonus (<0.2)
         if threat < 0.2:
             score += 0.2
 
-        # Clamp to [0, 1]
         return max(0.0, min(score, 1.0))
 
-    # Fallback for unknown task
     return 0.0

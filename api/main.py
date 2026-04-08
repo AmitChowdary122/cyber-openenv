@@ -12,38 +12,21 @@ env = CyberEnv()
 
 @app.post("/reset")
 async def reset_endpoint(request: Request):
-    """
-    Reset environment.
-    Optional JSON body:
-    {
-        "task_id": "easy" | "medium" | "hard"
-    }
-    """
     try:
         body = await request.json()
     except:
         body = {}
 
-    task_id = body.get("task_id")
+    task_id = body.get("task_id", "easy")
 
-    # detect task difficulty
-    if task_id:
-        difficulty = task_id
-    else:
-        difficulty = "easy"
+    #RECREATE ENV WITH CORRECT DIFFICULTY
+    global env
+    env = CyberEnv(difficulty=task_id)
 
-    env = CyberEnv(difficulty=difficulty)
     obs = env.reset()
 
-    # Override task if provided
-    if task_id:
-        for t in TASKS:
-            if t["id"] == task_id:
-                env.current_task = t
-                break
-
     return {
-        "observation": obs.dict(),
+        "observation": obs.model_dump(),
         "state": env.state(),
         "task": env.current_task
     }

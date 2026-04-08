@@ -142,7 +142,16 @@ class SimpleState:
         identified = self.system_state.get("identified_attacker")
         blocked = self.system_state.get("blocked_ips", [])
 
-        return identified in blocked
+        if task_id == "easy":
+            return identified is not None
+
+        if task_id == "medium":
+            return identified is not None and identified in blocked
+
+        if task_id == "hard":
+            return identified is not None and identified in blocked
+
+        return False
 
     # =========================
     # SERIALIZATION
