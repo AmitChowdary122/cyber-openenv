@@ -1,0 +1,60 @@
+{
+  "trained_mean": 1.16614,
+  "trained_correct_rate": 1.0,
+  "heuristic_mean": 1.2095399999999994,
+  "heuristic_correct_rate": 1.0,
+  "random_mean": -0.3365400000000002,
+  "random_correct_rate": 0.46,
+  "n_episodes": 50,
+  "transitions": [
+    {
+      "from_tier": 0,
+      "to_tier": 1,
+      "from_name": "Novice Analyst",
+      "to_name": "Junior Analyst",
+      "at_episode": 160,
+      "rolling_mean_at_unlock": 0.5032499999999999,
+      "unlock_threshold": 0.5
+    },
+    {
+      "from_tier": 1,
+      "to_tier": 2,
+      "from_name": "Junior Analyst",
+      "to_name": "Senior Analyst",
+      "at_episode": 172,
+      "rolling_mean_at_unlock": 0.8476666666666666,
+      "unlock_threshold": 0.6
+    },
+    {
+      "from_tier": 2,
+      "to_tier": 3,
+      "from_name": "Senior Analyst",
+      "to_name": "Threat Hunter",
+      "at_episode": 187,
+      "rolling_mean_at_unlock": 0.9017333333333334,
+      "unlock_threshold": 0.68
+    },
+    {
+      "from_tier": 3,
+      "to_tier": 4,
+      "from_name": "Threat Hunter",
+      "to_name": "APT Hunter",
+      "at_episode": 207,
+      "rolling_mean_at_unlock": 1.1250000000000002,
+      "unlock_threshold": 0.74
+    },
+    {
+      "from_tier": 4,
+      "to_tier": 5,
+      "from_name": "APT Hunter",
+      "to_name": "Elite Hunter",
+      "at_episode": 227,
+      "rolling_mean_at_unlock": 1.0995000000000004,
+      "unlock_threshold": 0.8
+    }
+  ],
+  "final_tier": 5,
+  "final_tier_name": "Elite Hunter",
+  "mode": "simulated_rollout",
+  "note": "Generated without GPU. Run train_unsloth_grpo.py on HF Jobs or a CUDA host to overwrite with real GRPO + Unsloth artifacts."
+}

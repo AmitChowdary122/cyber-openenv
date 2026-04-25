@@ -1,1 +1,1 @@
-# server/__init__.py
+"""HTTP server entry point for CyberSOC Arena (OpenEnv-compatible)."""

@@ -1,24 +1,43 @@
-[project]
-name = "cyber-openenv"
-version = "0.1.0"
-description = "Cybersecurity Incident Response OpenEnv Environment"
-authors = [
-    { name = "Amit Chowdary" }
-]
-readme = "README.md"
-requires-python = ">=3.10"
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
 
+[project]
+name = "openenv-cybersoc-arena"
+version = "0.2.0"
+description = "CyberSOC Arena — long-horizon SOC-analyst training environment for LLMs (OpenEnv compatible)."
+readme = "README.md"
+authors = [{ name = "Amit Chowdary" }]
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
 dependencies = [
-    "fastapi",
-    "uvicorn",
-    "pydantic",
-    "requests",
-    "openai",
-    "openenv-core>=0.2.0"
+    "openenv-core[core]>=0.2.2",
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "pydantic>=2.0",
+    "matplotlib>=3.7",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+trl = [
+    "transformers>=4.41",
+    "trl>=0.9",
+    "datasets>=2.14",
+    "accelerate>=0.30",
+]
+unsloth = [
+    "unsloth",
+]
+dev = [
+    "pytest>=8.0.0",
 ]
 
 [project.scripts]
+# Server entry point — required by `openenv validate` and used to run the
+# FastAPI app via `uv run --project . server` or `python -m server.app`.
 server = "server.app:main"
 
-[tool.openenv]
-entry_point = "server.app:main"
+[tool.setuptools]
+include-package-data = true
+packages = ["cybersoc_arena", "server"]

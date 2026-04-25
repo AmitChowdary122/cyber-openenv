@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Training intermediates we DO NOT want in git
+runs/grpo/checkpoint/
+runs/grpo/final_model/
+
+# Hatch / build
+build/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# NOTE: assets/*.png, runs/grpo/training_log.json, runs/grpo/eval_results.json,
+# and runs/grpo/training_log.jsonl are intentionally tracked — they are the
+# reviewable training-evidence artifacts.

@@ -1,7 +1,2 @@
-# requirements.txt
-fastapi
-uvicorn
-pydantic
-requests
-openai
-openenv-core>=0.2.0
+matplotlib>=3.7
+numpy>=1.24

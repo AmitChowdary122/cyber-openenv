@@ -1,0 +1,59 @@
+{
+  "episodes": 200,
+  "seed": 42,
+  "transitions": [
+    {
+      "from_tier": 0,
+      "to_tier": 1,
+      "from_name": "Novice Analyst",
+      "to_name": "Junior Analyst",
+      "at_episode": 99,
+      "rolling_mean_at_unlock": 0.5604999999999999,
+      "unlock_threshold": 0.5
+    },
+    {
+      "from_tier": 1,
+      "to_tier": 2,
+      "from_name": "Junior Analyst",
+      "to_name": "Senior Analyst",
+      "at_episode": 111,
+      "rolling_mean_at_unlock": 0.8236666666666667,
+      "unlock_threshold": 0.6
+    },
+    {
+      "from_tier": 2,
+      "to_tier": 3,
+      "from_name": "Senior Analyst",
+      "to_name": "Threat Hunter",
+      "at_episode": 126,
+      "rolling_mean_at_unlock": 0.922,
+      "unlock_threshold": 0.68
+    },
+    {
+      "from_tier": 3,
+      "to_tier": 4,
+      "from_name": "Threat Hunter",
+      "to_name": "APT Hunter",
+      "at_episode": 146,
+      "rolling_mean_at_unlock": 1.0723000000000003,
+      "unlock_threshold": 0.74
+    },
+    {
+      "from_tier": 4,
+      "to_tier": 5,
+      "from_name": "APT Hunter",
+      "to_name": "Elite Hunter",
+      "at_episode": 166,
+      "rolling_mean_at_unlock": 1.0752000000000002,
+      "unlock_threshold": 0.8
+    }
+  ],
+  "final_tier": 5,
+  "final_tier_name": "Elite Hunter",
+  "mean_curriculum_last100": 1.0492699999999997,
+  "mean_random_last100": -0.3761700000000004,
+  "mean_heuristic_last100": 1.1143100000000001,
+  "correct_rate_curriculum_last100": 0.99,
+  "correct_rate_random_last100": 0.42,
+  "correct_rate_heuristic_last100": 1.0
+}
