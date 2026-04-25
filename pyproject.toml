@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openenv-cybersoc-arena"
+name = "cybersoc-arena"
 version = "0.2.0"
 description = "CyberSOC Arena — long-horizon SOC-analyst training environment for LLMs (OpenEnv compatible)."
 readme = "README.md"
@@ -21,13 +21,16 @@ dependencies = [
 
 [project.optional-dependencies]
 trl = [
-    "transformers>=4.41",
-    "trl>=0.9",
+    "transformers>=4.45",
+    "trl>=0.12",
     "datasets>=2.14",
     "accelerate>=0.30",
+    "wandb",
 ]
 unsloth = [
     "unsloth",
+    "bitsandbytes",
+    "peft>=0.10",
 ]
 dev = [
     "pytest>=8.0.0",

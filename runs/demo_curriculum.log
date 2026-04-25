@@ -1,0 +1,58 @@
+========================================================================
+CURRICULUM DEMO — agent unlocks tiers as rolling reward crosses thresholds
+========================================================================
+
+>> Now at Tier 0: Novice Analyst
+  Ep   1  tier=0 (Novice Analyst  )  scenario=benign_scan             reward=+0.688  rolling_mean=+0.688  progress=100.0%  correct=Y
+  Ep   2  tier=0 (Novice Analyst  )  scenario=benign_scan             reward=+0.688  rolling_mean=+0.688  progress=100.0%  correct=Y
+  Ep   3  tier=0 (Novice Analyst  )  scenario=benign_scan             reward=+0.688  rolling_mean=+0.688  progress=100.0%  correct=Y
+  Ep   4  tier=0 (Novice Analyst  )  scenario=benign_scan             reward=+0.688  rolling_mean=+0.688  progress=100.0%  correct=Y
+  Ep   5  tier=0 (Novice Analyst  )  scenario=benign_scan             reward=+0.688  rolling_mean=+0.688  progress=100.0%  correct=Y
+
+>> Now at Tier 1: Junior Analyst
+  Ep   8  tier=1 (Junior Analyst  )  scenario=benign_scan             reward=+0.688  rolling_mean=+0.000  progress=  0.0%  correct=Y
+
+   *** TIER UNLOCK at ep 8: Novice Analyst -> Junior Analyst (rolling_mean +0.688 >= threshold 0.50) ***
+  Ep  10  tier=1 (Junior Analyst  )  scenario=credential_stuffing     reward=+1.172  rolling_mean=+0.930  progress=100.0%  correct=Y
+
+>> Now at Tier 2: Senior Analyst
+  Ep  20  tier=2 (Senior Analyst  )  scenario=benign_scan             reward=+0.688  rolling_mean=+0.000  progress=  0.0%  correct=Y
+
+   *** TIER UNLOCK at ep 20: Junior Analyst -> Senior Analyst (rolling_mean +0.849 >= threshold 0.60) ***
+  Ep  30  tier=2 (Senior Analyst  )  scenario=credential_stuffing     reward=+1.172  rolling_mean=+1.035  progress=100.0%  correct=Y
+
+>> Now at Tier 3: Threat Hunter
+  Ep  35  tier=3 (Threat Hunter   )  scenario=benign_scan             reward=+0.688  rolling_mean=+0.000  progress=  0.0%  correct=Y
+
+   *** TIER UNLOCK at ep 35: Senior Analyst -> Threat Hunter (rolling_mean +1.056 >= threshold 0.68) ***
+  Ep  40  tier=3 (Threat Hunter   )  scenario=data_exfiltration       reward=+1.242  rolling_mean=+1.006  progress=100.0%  correct=Y
+  Ep  50  tier=3 (Threat Hunter   )  scenario=benign_scan             reward=+0.688  rolling_mean=+1.072  progress=100.0%  correct=Y
+
+>> Now at Tier 4: APT Hunter
+  Ep  55  tier=4 (APT Hunter      )  scenario=phishing_lateral        reward=+1.199  rolling_mean=+0.000  progress=  0.0%  correct=Y
+
+   *** TIER UNLOCK at ep 55: Threat Hunter -> APT Hunter (rolling_mean +1.053 >= threshold 0.74) ***
+  Ep  60  tier=4 (APT Hunter      )  scenario=benign_scan             reward=+0.688  rolling_mean=+0.989  progress=100.0%  correct=Y
+  Ep  70  tier=4 (APT Hunter      )  scenario=benign_scan             reward=+0.688  rolling_mean=+1.043  progress=100.0%  correct=Y
+
+>> Now at Tier 5: Elite Hunter
+  Ep  75  tier=5 (Elite Hunter    )  scenario=multi_stage_chain       reward=+1.114  rolling_mean=+0.000  progress=100.0%  correct=Y
+
+   *** TIER UNLOCK at ep 75: APT Hunter -> Elite Hunter (rolling_mean +1.021 >= threshold 0.80) ***
+  Ep  80  tier=5 (Elite Hunter    )  scenario=data_exfiltration       reward=+1.242  rolling_mean=+1.251  progress=100.0%  correct=Y
+  Ep  90  tier=5 (Elite Hunter    )  scenario=benign_scan             reward=+0.688  rolling_mean=+1.079  progress=100.0%  correct=Y
+  Ep 100  tier=5 (Elite Hunter    )  scenario=long_horizon_apt        reward=+1.401  rolling_mean=+1.132  progress=100.0%  correct=Y
+  Ep 110  tier=5 (Elite Hunter    )  scenario=benign_scan             reward=+0.688  rolling_mean=+1.100  progress=100.0%  correct=Y
+  Ep 120  tier=5 (Elite Hunter    )  scenario=data_exfiltration       reward=+1.242  rolling_mean=+1.086  progress=100.0%  correct=Y
+
+========================================================================
+FINAL CURRICULUM STATE
+========================================================================
+  Final tier:       5 (Elite Hunter)
+  Episode count:    120
+  Tier transitions: 5
+    Ep   8: Novice Analyst   -> Junior Analyst   rolling=+0.688 thr=0.50
+    Ep  20: Junior Analyst   -> Senior Analyst   rolling=+0.849 thr=0.60
+    Ep  35: Senior Analyst   -> Threat Hunter    rolling=+1.056 thr=0.68
+    Ep  55: Threat Hunter    -> APT Hunter       rolling=+1.053 thr=0.74
+    Ep  75: APT Hunter       -> Elite Hunter     rolling=+1.021 thr=0.80

@@ -1,0 +1,116 @@
+========================================================================
+LONG-HORIZON APT DEMO — 20 steps, 5 phases, 5 hosts
+========================================================================
+
+ALERT:    SIEM (medium): unusual outbound DNS volume from db_host. Single-source phishing email reported by 1 finance user 4 hours earlier.
+SEVERITY: medium
+BUDGET:   20 steps
+IPs:      ['179.165.60.149', '86.52.46.106', '130.197.39.65', '132.109.206.113', '62.240.98.139', '10.0.3.54', '10.0.1.212']
+HOSTS:    ['dmz_host', 'jump_host', 'dc_host', 'db_host', 'hr_host']
+Ground truth attacker (grader-only): 179.165.60.149
+Ground truth C2     (grader-only):   86.52.46.106
+
+Step  1 [Phase 1: Recon (threat-intel on attacker IP)]
+  Action:  {"action_type": "check_threat_intel", "ip": "179.165.60.149"}
+  Reward:  +0.075   cum=+0.075
+  Result:  check_threat_intel(179.165.60.149) revealed: 179.165.60.149 matches APT-41 infra cluster (TTPs: spearphish + webshell).
+  Evidence so far: total=1, confirming=1
+
+Step  2 [Phase 1: Recon (mail logs from attacker IP)]
+  Action:  {"action_type": "query_logs", "ip": "179.165.60.149"}
+  Reward:  +0.070   cum=+0.145
+  Result:  query_logs(179.165.60.149) revealed: Spearphish email from 179.165.60.149 delivered HTA payload to 3 finance users at 08:42.
+  Evidence so far: total=2, confirming=2
+
+Step  3 [Phase 2: Foothold (EDR scan on dmz_host)]
+  Action:  {"action_type": "inspect_endpoint", "host": "dmz_host"}
+  Reward:  +0.075   cum=+0.220
+  Result:  inspect_endpoint(dmz_host) revealed: dmz_host: webshell 'cmd.aspx' dropped under /var/www/uploads/ at 09:03; owned by w3wp.exe.
+  Evidence so far: total=3, confirming=3
+
+Step  4 [Phase 2: Foothold (web logs on dmz_host)]
+  Action:  {"action_type": "query_logs", "host": "dmz_host"}
+  Reward:  +0.155   cum=+0.375
+  Result:  query_logs(dmz_host) revealed: dmz_host: 47 POST requests to cmd.aspx from 179.165.60.149, base64 'whoami /priv' & 'net group'. | dmz_host: webshell file timest
+  Evidence so far: total=5, confirming=5
+
+Step  5 [Phase 3: Discovery (EDR scan on jump_host)]
+  Action:  {"action_type": "inspect_endpoint", "host": "jump_host"}
+  Reward:  +0.070   cum=+0.445
+  Result:  inspect_endpoint(jump_host) revealed: jump_host: BloodHound LDAP collector 'SharpHound.exe' executed; full domain map exported.
+  Evidence so far: total=6, confirming=6
+
+Step  6 [Phase 3: Discovery (lateral logs on jump_host)]
+  Action:  {"action_type": "query_logs", "host": "jump_host"}
+  Reward:  +0.075   cum=+0.520
+  Result:  query_logs(jump_host) revealed: jump_host: WMI lateral movement DMZ -> JUMP using stolen svc_iis cred at 09:31.
+  Evidence so far: total=7, confirming=7
+
+Step  7 [Phase 4: DC Compromise (EDR scan on dc_host)]
+  Action:  {"action_type": "inspect_endpoint", "host": "dc_host"}
+  Reward:  +0.080   cum=+0.600
+  Result:  inspect_endpoint(dc_host) revealed: dc_host: mimikatz DCSync against krbtgt account; golden ticket forged for Domain Admins.
+  Evidence so far: total=8, confirming=8
+
+Step  8 [Phase 4: Correlation (kerberos chain on dc_host)]
+  Action:  {"action_type": "correlate_events", "host": "dc_host"}
+  Reward:  +0.080   cum=+0.680
+  Result:  correlate_events(dc_host) revealed: Full kill chain confirmed: 179.165.60.149 -> dmz_host -> jump_host -> dc_host -> db_host -> 86.52.46.106.
+  Evidence so far: total=9, confirming=9
+
+Step  9 [Phase 5: Exfiltration (db_host DNS tunnel)]
+  Action:  {"action_type": "query_logs", "host": "db_host"}
+  Reward:  +0.080   cum=+0.760
+  Result:  query_logs(db_host) revealed: db_host: 180,000 rows SELECT * FROM customers; chunked over DNS TXT to 86.52.46.106 (encoded).
+  Evidence so far: total=10, confirming=10
+
+Step 10 [Phase 5: C2 intel (DGA domain on c2_ip)]
+  Action:  {"action_type": "check_threat_intel", "ip": "86.52.46.106"}
+  Reward:  +0.070   cum=+0.830
+  Result:  check_threat_intel(86.52.46.106) revealed: 86.52.46.106: DGA-style domain (entropy 4.2), newly-registered TLD .top, sinkholed yesterday.
+  Evidence so far: total=11, confirming=11
+
+Step 11 [Phase 5: deepen — db endpoint scan]
+  Action:  {"action_type": "inspect_endpoint", "host": "db_host"}
+  Reward:  +0.065   cum=+0.895
+  Result:  inspect_endpoint(db_host) revealed: db_host: dns2tcp client process 'svchost_dnsupd.exe' spawned by SQL Agent.
+  Evidence so far: total=12, confirming=12
+
+Step 12 [Phase 4: deepen — golden ticket on jump]
+  Action:  {"action_type": "correlate_events", "host": "jump_host"}
+  Reward:  +0.075   cum=+0.970
+  Result:  correlate_events(jump_host) revealed: jump_host: kerberos golden-ticket TGT used to access db_host as Domain Admin (impersonated).
+  Evidence so far: total=13, confirming=13
+
+Step 13 [Phase 2: deepen — webshell timeline on dmz]
+  Action:  {"action_type": "query_logs", "host": "dmz_host"}
+  Reward:  -0.070   cum=+0.900
+  Result:  query_logs(dmz_host) — already queried, no new info.
+  Evidence so far: total=13, confirming=13
+
+Step 14 [Decision]
+  Action:  {"action_type": "identify_attacker", "ip": "179.165.60.149"}
+  Reward:  +1.080   cum=+1.980
+  Result:  identify_attacker(179.165.60.149): CORRECT
+
+------------------------------------------------------------------------
+FINAL VERDICT: action_type=identify_attacker  target=179.165.60.149  premature=False  correct=True
+TOTAL REWARD:  +1.980
+STEPS USED:    14 / 20
+EVIDENCE:      collected=13, confirming=13
+------------------------------------------------------------------------
+
+Full revealed evidence list:
+   1. 179.165.60.149 matches APT-41 infra cluster (TTPs: spearphish + webshell).
+   2. Spearphish email from 179.165.60.149 delivered HTA payload to 3 finance users at 08:42.
+   3. dmz_host: webshell 'cmd.aspx' dropped under /var/www/uploads/ at 09:03; owned by w3wp.exe.
+   4. dmz_host: 47 POST requests to cmd.aspx from 179.165.60.149, base64 'whoami /priv' & 'net group'.
+   5. dmz_host: webshell file timestamp aligned with phishing-click on user wkst (within 4 min).
+   6. jump_host: BloodHound LDAP collector 'SharpHound.exe' executed; full domain map exported.
+   7. jump_host: WMI lateral movement DMZ -> JUMP using stolen svc_iis cred at 09:31.
+   8. dc_host: mimikatz DCSync against krbtgt account; golden ticket forged for Domain Admins.
+   9. Full kill chain confirmed: 179.165.60.149 -> dmz_host -> jump_host -> dc_host -> db_host -> 86.52.46.106.
+  10. db_host: 180,000 rows SELECT * FROM customers; chunked over DNS TXT to 86.52.46.106 (encoded).
+  11. 86.52.46.106: DGA-style domain (entropy 4.2), newly-registered TLD .top, sinkholed yesterday.
+  12. db_host: dns2tcp client process 'svchost_dnsupd.exe' spawned by SQL Agent.
+  13. jump_host: kerberos golden-ticket TGT used to access db_host as Domain Admin (impersonated).

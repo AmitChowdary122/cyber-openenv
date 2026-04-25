@@ -1,3 +1,22 @@
+---
+title: CyberSOC Arena
+emoji: 🛡️
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 8000
+pinned: false
+license: apache-2.0
+tags:
+  - openenv
+  - cybersecurity
+  - reinforcement-learning
+  - long-horizon-planning
+  - self-improvement
+  - tool-use
+short_description: Long-horizon SOC analyst training environment for LLMs.
+---
+
 # CyberSOC Arena 🛡️
 
 > **Training LLMs to think like SOC analysts** — multi-step investigation,
@@ -121,10 +140,40 @@ is unlocked and the new (larger) scenario pool kicks in.
 | 2 | Senior Analyst | + `phishing_lateral` | ≥ 0.68 | 15 |
 | 3 | Threat Hunter | + `data_exfiltration` | ≥ 0.74 | 20 |
 | 4 | APT Hunter | + `multi_stage_chain` | ≥ 0.80 | 20 |
-| 5 | **Elite Hunter** | + **`long_horizon_apt`** | top tier | 25 |
+| 5 | **Elite Hunter** | + `long_horizon_apt`, `ransomware_deployment`, `supply_chain_attack` | top tier | 25 |
 
-The 20-step APT scenario is **only** unlocked after the agent has cleared
-every other scenario type — i.e. self-improvement gates the showcase.
+The 20-step APT, the 15-step LockBit-style ransomware deployment, and the
+18-step SolarWinds-style supply-chain attack are **only** unlocked after
+the agent has cleared every other scenario type — i.e. self-improvement
+gates the three showcase scenarios.
+
+Pass `adversarial=True` to `CurriculumEnv` to enable **adversarial mode**
+on Elite tier: 2 extra plausible-looking external IPs (drawn from real
+TOR-exit / bulletproof-host ranges) are injected into every observation.
+They have no evidence attached, so any tool call against them returns
+"nothing of interest" — a tax on impulsive triagers, free for patient
+ones.
+
+```python
+from cybersoc_arena import CurriculumEnv
+env = CurriculumEnv(start_tier=5, adversarial=True, seed=42)
+obs = env.reset()
+assert obs["adversarial_mode"] is True
+print("decoys injected:", obs["adversarial_decoys"])
+```
+
+### The 8 scenarios
+
+| Scenario | Type | Steps | Heuristic Reward |
+| --- | --- | --- | --- |
+| benign_scan | Benign | 6 | +0.69 |
+| credential_stuffing | Malicious | 8 | +1.17 |
+| phishing_lateral | Malicious | 10 | +1.20 |
+| data_exfiltration | Malicious | 12 | +1.34 |
+| multi_stage_chain | Malicious | 15 | +0.51 |
+| ransomware_deployment | Malicious | 15 | +0.43 |
+| supply_chain_attack | Malicious | 18 | +1.06 |
+| long_horizon_apt | Malicious | 20 | +1.40 |
 
 ---
 
@@ -194,6 +243,49 @@ python train_grpo.py --steps 200
 `train_unsloth_grpo.py` automatically falls back to the CPU rollout
 pipeline when no GPU / Unsloth is detected — so the same script
 populates `assets/` and `runs/grpo/` in either environment.
+
+---
+
+## Larger Model Training (Qwen2.5-7B)
+
+We also train `unsloth/Qwen2.5-7B-Instruct-bnb-4bit` via HF Jobs on an
+A10G-small GPU (~$1.00/hr, ~3-4 hrs total). This run uses the full
+8-scenario curriculum, the adversarial Elite tier for evaluation, and
+WandB for live tracking.
+
+```bash
+export HF_TOKEN=hf_xxx
+export WANDB_API_KEY=...        # optional — enables wandb tracking
+./run_7b_hf_job.sh              # checks token + launches the job
+# or directly:
+hf jobs uv run \
+    --flavor a10g-small \
+    --env HF_TOKEN=$HF_TOKEN \
+    --env WANDB_API_KEY=$WANDB_API_KEY \
+    train_7b_hf_jobs.py
+```
+
+Differences from the 0.5B run:
+
+| | 0.5B run | 7B run |
+| --- | --- | --- |
+| model | Qwen2.5-0.5B-Instruct | Qwen2.5-7B-Instruct (bnb-4bit) |
+| LoRA | r=16 / α=16 | r=32 / α=64 |
+| max seq | 2048 | 4096 |
+| batch × accum | 2 × 8 | 1 × 16 |
+| LR | 5e-6 | 2e-6 |
+| epochs | 3 | 2 |
+| dataset | 200 prompts | 400 prompts |
+| eval | 50 eps, plain | 100 eps, Elite + adversarial |
+| flavor | t4-small (~$0.40/hr) | a10g-small (~$1.00/hr) |
+| outputs | `assets/`, `runs/grpo/` | `assets/7b/`, `runs/grpo_7b/` |
+
+**Live HF Jobs run (Qwen2.5-7B, A10G-small):**
+[`amit51/69ed2090d70108f37acdeee9`](https://huggingface.co/jobs/amit51/69ed2090d70108f37acdeee9)
+— launched at the start of finalisation, populates `assets/7b/` and
+`runs/grpo_7b/eval_results.json` on completion.
+
+WandB dashboard: _link added once the job completes_
 
 ---
 

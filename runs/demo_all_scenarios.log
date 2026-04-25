@@ -1,0 +1,757 @@
+CyberSOC Arena — running one full episode of each scenario type.
+
+========================================================================
+SCENARIO: BENIGN_SCAN
+========================================================================
+
+INITIAL ALERT: IDS: repeated probes from 128.230.59.170 hitting web-01/ web ports.
+SEVERITY:      low
+BUDGET:        6 steps
+KNOWN IPs:     ['128.230.59.170']
+KNOWN HOSTS:   ['web-01']
+
+  STEP 1
+  ACTION:  {"action_type": "check_threat_intel", "ip": "128.230.59.170"}
+  REWARD:  +0.016   cum=+0.016
+  RESULT:  check_threat_intel(128.230.59.170) revealed: 128.230.59.170 is a known security vendor scanner (Shodan/Censys range).
+           evidence_collected=1, confirming=0
+
+  STEP 2
+  ACTION:  {"action_type": "query_logs", "ip": "128.230.59.170"}
+  REWARD:  +0.008   cum=+0.024
+  RESULT:  query_logs(128.230.59.170) revealed: Burst of 14 GETs from 128.230.59.170 to /, /robots.txt, /favicon.ico — fingerprinting only.
+           evidence_collected=2, confirming=0
+
+  STEP 3
+  ACTION:  {"action_type": "inspect_endpoint", "host": "web-01"}
+  REWARD:  +0.004   cum=+0.028
+  RESULT:  inspect_endpoint(web-01) revealed: No new processes / no persistence on web-01. Web server is stock.
+           evidence_collected=3, confirming=0
+
+  STEP 4
+  ACTION:  {"action_type": "query_logs", "host": "web-01"}
+  REWARD:  -0.020   cum=+0.008
+  RESULT:  query_logs(web-01) — nothing of interest.
+           evidence_collected=3, confirming=0
+
+  STEP 5
+  ACTION:  {"action_type": "mark_benign"}
+  REWARD:  +0.680   cum=+0.688
+  RESULT:  mark_benign: correctly closed false positive [premature]
+           evidence_collected=3, confirming=0
+
+  TERMINAL ACTION: mark_benign  target=None  premature=True
+  CORRECT:        True
+
+------------------------------------------------------------------------
+EPISODE SUMMARY
+  Total reward:   +0.688
+  Steps taken:    5 / 6
+  Evidence revealed: 3
+  Outcome:        CORRECT
+------------------------------------------------------------------------
+
+========================================================================
+SCENARIO: CREDENTIAL_STUFFING
+========================================================================
+
+INITIAL ALERT: Auth gateway: spike in failed logins from 128.230.59.170 (and a few from 78.180.168.142).
+SEVERITY:      medium
+BUDGET:        8 steps
+KNOWN IPs:     ['128.230.59.170', '78.180.168.142']
+KNOWN HOSTS:   ['auth-gw']
+
+  STEP 1
+  ACTION:  {"action_type": "check_threat_intel", "ip": "128.230.59.170"}
+  REWARD:  +0.070   cum=+0.070
+  RESULT:  check_threat_intel(128.230.59.170) revealed: 128.230.59.170 flagged on AbuseIPDB (score 92) — credential-stuffing botnet node.
+           evidence_collected=1, confirming=1
+
+  STEP 2
+  ACTION:  {"action_type": "check_threat_intel", "ip": "78.180.168.142"}
+  REWARD:  -0.004   cum=+0.066
+  RESULT:  check_threat_intel(78.180.168.142) revealed: 78.180.168.142 is a residential ISP range, no abuse reports.
+           evidence_collected=2, confirming=1
+
+  STEP 3
+  ACTION:  {"action_type": "query_logs", "ip": "128.230.59.170"}
+  REWARD:  +0.075   cum=+0.141
+  RESULT:  query_logs(128.230.59.170) revealed: 128.230.59.170: 1,142 failed logins across 38 accounts in 3 minutes.
+           evidence_collected=3, confirming=2
+
+  STEP 4
+  ACTION:  {"action_type": "query_logs", "ip": "78.180.168.142"}
+  REWARD:  -0.004   cum=+0.137
+  RESULT:  query_logs(78.180.168.142) revealed: 78.180.168.142: 4 failed logins, then normal MFA-success — looks like a fat-fingered user.
+           evidence_collected=4, confirming=2
+
+  STEP 5
+  ACTION:  {"action_type": "inspect_endpoint", "host": "auth-gw"}
+  REWARD:  +0.075   cum=+0.212
+  RESULT:  inspect_endpoint(auth-gw) revealed: auth-gw auth log shows brute-force pattern; 1 successful login svc_finance from 128.230.59.170.
+           evidence_collected=5, confirming=3
+
+  STEP 6
+  ACTION:  {"action_type": "query_logs", "host": "auth-gw"}
+  REWARD:  -0.020   cum=+0.192
+  RESULT:  query_logs(auth-gw) — nothing of interest.
+           evidence_collected=5, confirming=3
+
+  STEP 7
+  ACTION:  {"action_type": "identify_attacker", "ip": "128.230.59.170"}
+  REWARD:  +0.980   cum=+1.172
+  RESULT:  identify_attacker(128.230.59.170): CORRECT
+           evidence_collected=5, confirming=3
+
+  TERMINAL ACTION: identify_attacker  target=128.230.59.170  premature=False
+  CORRECT:        True
+
+------------------------------------------------------------------------
+EPISODE SUMMARY
+  Total reward:   +1.172
+  Steps taken:    7 / 8
+  Evidence revealed: 5
+  Outcome:        CORRECT
+------------------------------------------------------------------------
+
+========================================================================
+SCENARIO: PHISHING_LATERAL
+========================================================================
+
+INITIAL ALERT: EDR: suspicious child-process from EXCEL.EXE on wkst-finance-04.
+SEVERITY:      high
+BUDGET:        10 steps
+KNOWN IPs:     ['128.230.59.170', '78.180.168.142', '10.0.0.59']
+KNOWN HOSTS:   ['wkst-finance-04', 'file-srv']
+
+  STEP 1
+  ACTION:  {"action_type": "check_threat_intel", "ip": "128.230.59.170"}
+  REWARD:  +0.065   cum=+0.065
+  RESULT:  check_threat_intel(128.230.59.170) revealed: 128.230.59.170 resolves to phishing-sender cluster (PROOFPOINT TAP cat=phish).
+           evidence_collected=1, confirming=1
+
+  STEP 2
+  ACTION:  {"action_type": "check_threat_intel", "ip": "78.180.168.142"}
+  REWARD:  -0.008   cum=+0.057
+  RESULT:  check_threat_intel(78.180.168.142) revealed: 78.180.168.142 is a Microsoft 365 IP — legitimate.
+           evidence_collected=2, confirming=1
+
+  STEP 3
+  ACTION:  {"action_type": "check_threat_intel", "ip": "10.0.0.59"}
+  REWARD:  -0.020   cum=+0.037
+  RESULT:  check_threat_intel(10.0.0.59) — nothing of interest.
+           evidence_collected=2, confirming=1
+
+  STEP 4
+  ACTION:  {"action_type": "query_logs", "ip": "128.230.59.170"}
+  REWARD:  +0.065   cum=+0.102
+  RESULT:  query_logs(128.230.59.170) revealed: Inbound email from spoofed-domain to user-04 with macro-laden Excel; clicked at 09:14.
+           evidence_collected=3, confirming=2
+
+  STEP 5
+  ACTION:  {"action_type": "query_logs", "ip": "78.180.168.142"}
+  REWARD:  -0.020   cum=+0.082
+  RESULT:  query_logs(78.180.168.142) — nothing of interest.
+           evidence_collected=3, confirming=2
+
+  STEP 6
+  ACTION:  {"action_type": "query_logs", "ip": "10.0.0.59"}
+  REWARD:  -0.008   cum=+0.074
+  RESULT:  query_logs(10.0.0.59) revealed: 10.0.0.59 is the print server polling the file share — normal.
+           evidence_collected=4, confirming=2
+
+  STEP 7
+  ACTION:  {"action_type": "inspect_endpoint", "host": "wkst-finance-04"}
+  REWARD:  +0.075   cum=+0.149
+  RESULT:  inspect_endpoint(wkst-finance-04) revealed: EDR on wkst-finance-04: powershell.exe spawned by EXCEL.EXE; downloads to %TEMP%\inv.dll.
+           evidence_collected=5, confirming=3
+
+  STEP 8
+  ACTION:  {"action_type": "inspect_endpoint", "host": "file-srv"}
+  REWARD:  +0.070   cum=+0.219
+  RESULT:  inspect_endpoint(file-srv) revealed: file-srv: SMB session from wkst-finance-04 copying out finance Q4 spreadsheets.
+           evidence_collected=6, confirming=4
+
+  STEP 9
+  ACTION:  {"action_type": "identify_attacker", "ip": "128.230.59.170"}
+  REWARD:  +0.980   cum=+1.199
+  RESULT:  identify_attacker(128.230.59.170): CORRECT
+           evidence_collected=6, confirming=4
+
+  TERMINAL ACTION: identify_attacker  target=128.230.59.170  premature=False
+  CORRECT:        True
+
+------------------------------------------------------------------------
+EPISODE SUMMARY
+  Total reward:   +1.199
+  Steps taken:    9 / 10
+  Evidence revealed: 6
+  Outcome:        CORRECT
+------------------------------------------------------------------------
+
+========================================================================
+SCENARIO: DATA_EXFILTRATION
+========================================================================
+
+INITIAL ALERT: DLP: 4 GB outbound to 78.180.168.142 from crm-app during off-hours.
+SEVERITY:      high
+BUDGET:        12 steps
+KNOWN IPs:     ['78.180.168.142', '128.230.59.170', '49.114.59.81']
+KNOWN HOSTS:   ['crm-db', 'crm-app']
+
+  STEP 1
+  ACTION:  {"action_type": "check_threat_intel", "ip": "78.180.168.142"}
+  REWARD:  +0.065   cum=+0.065
+  RESULT:  check_threat_intel(78.180.168.142) revealed: 78.180.168.142 is a DigitalOcean droplet, sinkhole tagged 'EXFIL/STAGER'.
+           evidence_collected=1, confirming=1
+
+  STEP 2
+  ACTION:  {"action_type": "check_threat_intel", "ip": "128.230.59.170"}
+  REWARD:  +0.065   cum=+0.130
+  RESULT:  check_threat_intel(128.230.59.170) revealed: 128.230.59.170 authenticated to crm-app via stolen svc_app key, then triggered the export.
+           evidence_collected=2, confirming=2
+
+  STEP 3
+  ACTION:  {"action_type": "check_threat_intel", "ip": "49.114.59.81"}
+  REWARD:  -0.008   cum=+0.122
+  RESULT:  check_threat_intel(49.114.59.81) revealed: 49.114.59.81 is the CDN edge for static assets — normal.
+           evidence_collected=3, confirming=2
+
+  STEP 4
+  ACTION:  {"action_type": "query_logs", "ip": "78.180.168.142"}
+  REWARD:  -0.020   cum=+0.102
+  RESULT:  query_logs(78.180.168.142) — nothing of interest.
+           evidence_collected=3, confirming=2
+
+  STEP 5
+  ACTION:  {"action_type": "query_logs", "ip": "128.230.59.170"}
+  REWARD:  -0.020   cum=+0.082
+  RESULT:  query_logs(128.230.59.170) — nothing of interest.
+           evidence_collected=3, confirming=2
+
+  STEP 6
+  ACTION:  {"action_type": "query_logs", "ip": "49.114.59.81"}
+  REWARD:  -0.020   cum=+0.062
+  RESULT:  query_logs(49.114.59.81) — nothing of interest.
+           evidence_collected=3, confirming=2
+
+  STEP 7
+  ACTION:  {"action_type": "inspect_endpoint", "host": "crm-db"}
+  REWARD:  +0.070   cum=+0.132
+  RESULT:  inspect_endpoint(crm-db) revealed: crm-db: rogue cron job tar/gzipping /var/exports nightly.
+           evidence_collected=4, confirming=3
+
+  STEP 8
+  ACTION:  {"action_type": "inspect_endpoint", "host": "crm-app"}
+  REWARD:  -0.020   cum=+0.112
+  RESULT:  inspect_endpoint(crm-app) — nothing of interest.
+           evidence_collected=4, confirming=3
+
+  STEP 9
+  ACTION:  {"action_type": "query_logs", "host": "crm-db"}
+  REWARD:  +0.075   cum=+0.187
+  RESULT:  query_logs(crm-db) revealed: crm-db: 4.2 GB SELECT * FROM customers exported by svc_app at 02:11.
+           evidence_collected=5, confirming=4
+
+  STEP 10
+  ACTION:  {"action_type": "query_logs", "host": "crm-app"}
+  REWARD:  +0.075   cum=+0.262
+  RESULT:  query_logs(crm-app) revealed: crm-app: outbound HTTPS bursts to 78.180.168.142, 4.1 GB total, 02:13–02:34.
+           evidence_collected=6, confirming=5
+
+  STEP 11
+  ACTION:  {"action_type": "identify_attacker", "ip": "128.230.59.170"}
+  REWARD:  +1.080   cum=+1.342
+  RESULT:  identify_attacker(128.230.59.170): CORRECT
+           evidence_collected=6, confirming=5
+
+  TERMINAL ACTION: identify_attacker  target=128.230.59.170  premature=False
+  CORRECT:        True
+
+------------------------------------------------------------------------
+EPISODE SUMMARY
+  Total reward:   +1.342
+  Steps taken:    11 / 12
+  Evidence revealed: 6
+  Outcome:        CORRECT
+------------------------------------------------------------------------
+
+========================================================================
+SCENARIO: MULTI_STAGE_CHAIN
+========================================================================
+
+INITIAL ALERT: SIEM: anomalous VPN login + lateral movement converging on billing-app.
+SEVERITY:      high
+BUDGET:        15 steps
+KNOWN IPs:     ['128.230.59.170', '78.180.168.142', '49.114.59.81', '10.0.1.226']
+KNOWN HOSTS:   ['vpn-edge', 'jump-srv', 'billing-app']
+
+  STEP 1
+  ACTION:  {"action_type": "check_threat_intel", "ip": "128.230.59.170"}
+  REWARD:  +0.070   cum=+0.070
+  RESULT:  check_threat_intel(128.230.59.170) revealed: 128.230.59.170 matches FIN7 infrastructure cluster (high confidence).
+           evidence_collected=1, confirming=1
+
+  STEP 2
+  ACTION:  {"action_type": "check_threat_intel", "ip": "78.180.168.142"}
+  REWARD:  +0.070   cum=+0.140
+  RESULT:  check_threat_intel(78.180.168.142) revealed: 78.180.168.142: Cobalt Strike team server on Akamai-fronted domain.
+           evidence_collected=2, confirming=2
+
+  STEP 3
+  ACTION:  {"action_type": "check_threat_intel", "ip": "49.114.59.81"}
+  REWARD:  -0.008   cum=+0.132
+  RESULT:  check_threat_intel(49.114.59.81) revealed: 49.114.59.81 is a corp-VPN concentrator IP — internal traffic.
+           evidence_collected=3, confirming=2
+
+  STEP 4
+  ACTION:  {"action_type": "check_threat_intel", "ip": "10.0.1.226"}
+  REWARD:  -0.020   cum=+0.112
+  RESULT:  check_threat_intel(10.0.1.226) — nothing of interest.
+           evidence_collected=3, confirming=2
+
+  STEP 5
+  ACTION:  {"action_type": "query_logs", "ip": "128.230.59.170"}
+  REWARD:  -0.020   cum=+0.092
+  RESULT:  query_logs(128.230.59.170) — nothing of interest.
+           evidence_collected=3, confirming=2
+
+  STEP 6
+  ACTION:  {"action_type": "query_logs", "ip": "78.180.168.142"}
+  REWARD:  -0.020   cum=+0.072
+  RESULT:  query_logs(78.180.168.142) — nothing of interest.
+           evidence_collected=3, confirming=2
+
+  STEP 7
+  ACTION:  {"action_type": "query_logs", "ip": "49.114.59.81"}
+  REWARD:  -0.020   cum=+0.052
+  RESULT:  query_logs(49.114.59.81) — nothing of interest.
+           evidence_collected=3, confirming=2
+
+  STEP 8
+  ACTION:  {"action_type": "query_logs", "ip": "10.0.1.226"}
+  REWARD:  -0.008   cum=+0.044
+  RESULT:  query_logs(10.0.1.226) revealed: 10.0.1.226 is the patch-management agent polling the jump server.
+           evidence_collected=4, confirming=2
+
+  STEP 9
+  ACTION:  {"action_type": "inspect_endpoint", "host": "vpn-edge"}
+  REWARD:  -0.020   cum=+0.024
+  RESULT:  inspect_endpoint(vpn-edge) — nothing of interest.
+           evidence_collected=4, confirming=2
+
+  STEP 10
+  ACTION:  {"action_type": "inspect_endpoint", "host": "jump-srv"}
+  REWARD:  +0.075   cum=+0.099
+  RESULT:  inspect_endpoint(jump-srv) revealed: jump-srv: psexec by user-49 onto billing-app; mimikatz dropped in C:\Windows\Temp.
+           evidence_collected=5, confirming=3
+
+  STEP 11
+  ACTION:  {"action_type": "inspect_endpoint", "host": "billing-app"}
+  REWARD:  -0.020   cum=+0.079
+  RESULT:  inspect_endpoint(billing-app) — nothing of interest.
+           evidence_collected=5, confirming=3
+
+  STEP 12
+  ACTION:  {"action_type": "query_logs", "host": "vpn-edge"}
+  REWARD:  +0.075   cum=+0.154
+  RESULT:  query_logs(vpn-edge) revealed: vpn-edge: VPN login as user-49 from 128.230.59.170, no MFA challenge — token replay.
+           evidence_collected=6, confirming=4
+
+  STEP 13
+  ACTION:  {"action_type": "query_logs", "host": "jump-srv"}
+  REWARD:  -0.020   cum=+0.134
+  RESULT:  query_logs(jump-srv) — nothing of interest.
+           evidence_collected=6, confirming=4
+
+  STEP 14
+  ACTION:  {"action_type": "escalate_incident"}
+  REWARD:  +0.380   cum=+0.514
+  RESULT:  escalate_incident: escalated real incident — IR team paged
+           evidence_collected=6, confirming=4
+
+  TERMINAL ACTION: escalate_incident  target=None  premature=False
+  CORRECT:        True
+
+------------------------------------------------------------------------
+EPISODE SUMMARY
+  Total reward:   +0.514
+  Steps taken:    14 / 15
+  Evidence revealed: 6
+  Outcome:        CORRECT
+------------------------------------------------------------------------
+
+========================================================================
+SCENARIO: LONG_HORIZON_APT
+========================================================================
+
+INITIAL ALERT: SIEM (medium): unusual outbound DNS volume from db_host. Single-source phishing email reported by 1 finance user 4 hours earlier.
+SEVERITY:      medium
+BUDGET:        20 steps
+KNOWN IPs:     ['128.230.59.170', '78.180.168.142', '49.114.59.81', '86.179.110.158', '76.10.84.99', '10.0.4.133', '10.0.3.96']
+KNOWN HOSTS:   ['dmz_host', 'jump_host', 'dc_host', 'db_host', 'hr_host']
+
+  STEP 1
+  ACTION:  {"action_type": "check_threat_intel", "ip": "128.230.59.170"}
+  REWARD:  +0.075   cum=+0.075
+  RESULT:  check_threat_intel(128.230.59.170) revealed: 128.230.59.170 matches APT-41 infra cluster (TTPs: spearphish + webshell).
+           evidence_collected=1, confirming=1
+
+  STEP 2
+  ACTION:  {"action_type": "check_threat_intel", "ip": "78.180.168.142"}
+  REWARD:  +0.070   cum=+0.145
+  RESULT:  check_threat_intel(78.180.168.142) revealed: 78.180.168.142: DGA-style domain (entropy 4.2), newly-registered TLD .top, sinkholed yesterday.
+           evidence_collected=2, confirming=2
+
+  STEP 3
+  ACTION:  {"action_type": "check_threat_intel", "ip": "49.114.59.81"}
+  REWARD:  +0.000   cum=+0.145
+  RESULT:  check_threat_intel(49.114.59.81) revealed: 49.114.59.81 is a Qualys/Tenable scanner IP — internal vuln-mgmt sweep.
+           evidence_collected=3, confirming=2
+
+  STEP 4
+  ACTION:  {"action_type": "check_threat_intel", "ip": "86.179.110.158"}
+  REWARD:  -0.004   cum=+0.141
+  RESULT:  check_threat_intel(86.179.110.158) revealed: 86.179.110.158 is a residential proxy / ISP range — no APT indicators.
+           evidence_collected=4, confirming=2
+
+  STEP 5
+  ACTION:  {"action_type": "check_threat_intel", "ip": "76.10.84.99"}
+  REWARD:  -0.020   cum=+0.121
+  RESULT:  check_threat_intel(76.10.84.99) — nothing of interest.
+           evidence_collected=4, confirming=2
+
+  STEP 6
+  ACTION:  {"action_type": "check_threat_intel", "ip": "10.0.4.133"}
+  REWARD:  -0.020   cum=+0.101
+  RESULT:  check_threat_intel(10.0.4.133) — nothing of interest.
+           evidence_collected=4, confirming=2
+
+  STEP 7
+  ACTION:  {"action_type": "check_threat_intel", "ip": "10.0.3.96"}
+  REWARD:  -0.020   cum=+0.081
+  RESULT:  check_threat_intel(10.0.3.96) — nothing of interest.
+           evidence_collected=4, confirming=2
+
+  STEP 8
+  ACTION:  {"action_type": "query_logs", "ip": "128.230.59.170"}
+  REWARD:  +0.070   cum=+0.151
+  RESULT:  query_logs(128.230.59.170) revealed: Spearphish email from 128.230.59.170 delivered HTA payload to 3 finance users at 08:42.
+           evidence_collected=5, confirming=3
+
+  STEP 9
+  ACTION:  {"action_type": "query_logs", "ip": "78.180.168.142"}
+  REWARD:  -0.020   cum=+0.131
+  RESULT:  query_logs(78.180.168.142) — nothing of interest.
+           evidence_collected=5, confirming=3
+
+  STEP 10
+  ACTION:  {"action_type": "query_logs", "ip": "49.114.59.81"}
+  REWARD:  -0.020   cum=+0.111
+  RESULT:  query_logs(49.114.59.81) — nothing of interest.
+           evidence_collected=5, confirming=3
+
+  STEP 11
+  ACTION:  {"action_type": "query_logs", "ip": "86.179.110.158"}
+  REWARD:  -0.020   cum=+0.091
+  RESULT:  query_logs(86.179.110.158) — nothing of interest.
+           evidence_collected=5, confirming=3
+
+  STEP 12
+  ACTION:  {"action_type": "query_logs", "ip": "76.10.84.99"}
+  REWARD:  -0.020   cum=+0.071
+  RESULT:  query_logs(76.10.84.99) — nothing of interest.
+           evidence_collected=5, confirming=3
+
+  STEP 13
+  ACTION:  {"action_type": "query_logs", "ip": "10.0.4.133"}
+  REWARD:  -0.020   cum=+0.051
+  RESULT:  query_logs(10.0.4.133) — nothing of interest.
+           evidence_collected=5, confirming=3
+
+  STEP 14
+  ACTION:  {"action_type": "query_logs", "ip": "10.0.3.96"}
+  REWARD:  -0.020   cum=+0.031
+  RESULT:  query_logs(10.0.3.96) — nothing of interest.
+           evidence_collected=5, confirming=3
+
+  STEP 15
+  ACTION:  {"action_type": "inspect_endpoint", "host": "dmz_host"}
+  REWARD:  +0.075   cum=+0.106
+  RESULT:  inspect_endpoint(dmz_host) revealed: dmz_host: webshell 'cmd.aspx' dropped under /var/www/uploads/ at 09:03; owned by w3wp.exe.
+           evidence_collected=6, confirming=4
+
+  STEP 16
+  ACTION:  {"action_type": "inspect_endpoint", "host": "jump_host"}
+  REWARD:  +0.070   cum=+0.176
+  RESULT:  inspect_endpoint(jump_host) revealed: jump_host: BloodHound LDAP collector 'SharpHound.exe' executed; full domain map exported.
+           evidence_collected=7, confirming=5
+
+  STEP 17
+  ACTION:  {"action_type": "inspect_endpoint", "host": "dc_host"}
+  REWARD:  +0.080   cum=+0.256
+  RESULT:  inspect_endpoint(dc_host) revealed: dc_host: mimikatz DCSync against krbtgt account; golden ticket forged for Domain Admins.
+           evidence_collected=8, confirming=6
+
+  STEP 18
+  ACTION:  {"action_type": "inspect_endpoint", "host": "db_host"}
+  REWARD:  +0.065   cum=+0.321
+  RESULT:  inspect_endpoint(db_host) revealed: db_host: dns2tcp client process 'svchost_dnsupd.exe' spawned by SQL Agent.
+           evidence_collected=9, confirming=7
+
+  STEP 19
+  ACTION:  {"action_type": "identify_attacker", "ip": "128.230.59.170"}
+  REWARD:  +1.080   cum=+1.401
+  RESULT:  identify_attacker(128.230.59.170): CORRECT
+           evidence_collected=9, confirming=7
+
+  TERMINAL ACTION: identify_attacker  target=128.230.59.170  premature=False
+  CORRECT:        True
+
+------------------------------------------------------------------------
+EPISODE SUMMARY
+  Total reward:   +1.401
+  Steps taken:    19 / 20
+  Evidence revealed: 9
+  Outcome:        CORRECT
+------------------------------------------------------------------------
+
+========================================================================
+SCENARIO: RANSOMWARE_DEPLOYMENT
+========================================================================
+
+INITIAL ALERT: EDR: mass file rename events (.locked extension) on file_srv. Shadow copies deleted on backup_srv. Estimated 14,000 files encrypted in 8 minutes.
+SEVERITY:      critical
+BUDGET:        15 steps
+KNOWN IPs:     ['185.220.230.170', '78.180.168.142', '49.114.59.81', '86.179.110.158', '10.0.0.7']
+KNOWN HOSTS:   ['ws_host', 'file_srv', 'backup_srv', 'dc_host']
+
+  STEP 1
+  ACTION:  {"action_type": "check_threat_intel", "ip": "185.220.230.170"}
+  REWARD:  +0.075   cum=+0.075
+  RESULT:  check_threat_intel(185.220.230.170) revealed: 185.220.230.170: RaaS affiliate, LockBit 3.0 infrastructure (high confidence).
+           evidence_collected=1, confirming=1
+
+  STEP 2
+  ACTION:  {"action_type": "check_threat_intel", "ip": "78.180.168.142"}
+  REWARD:  -0.020   cum=+0.055
+  RESULT:  check_threat_intel(78.180.168.142) — nothing of interest.
+           evidence_collected=1, confirming=1
+
+  STEP 3
+  ACTION:  {"action_type": "check_threat_intel", "ip": "49.114.59.81"}
+  REWARD:  -0.008   cum=+0.047
+  RESULT:  check_threat_intel(49.114.59.81) revealed: 49.114.59.81: Cloudflare CDN exit node, mixed reputation but no abuse reports.
+           evidence_collected=2, confirming=1
+
+  STEP 4
+  ACTION:  {"action_type": "check_threat_intel", "ip": "86.179.110.158"}
+  REWARD:  -0.020   cum=+0.027
+  RESULT:  check_threat_intel(86.179.110.158) — nothing of interest.
+           evidence_collected=2, confirming=1
+
+  STEP 5
+  ACTION:  {"action_type": "check_threat_intel", "ip": "10.0.0.7"}
+  REWARD:  -0.020   cum=+0.007
+  RESULT:  check_threat_intel(10.0.0.7) — nothing of interest.
+           evidence_collected=2, confirming=1
+
+  STEP 6
+  ACTION:  {"action_type": "query_logs", "ip": "185.220.230.170"}
+  REWARD:  -0.020   cum=-0.013
+  RESULT:  query_logs(185.220.230.170) — nothing of interest.
+           evidence_collected=2, confirming=1
+
+  STEP 7
+  ACTION:  {"action_type": "query_logs", "ip": "78.180.168.142"}
+  REWARD:  -0.012   cum=-0.025
+  RESULT:  query_logs(78.180.168.142) revealed: 78.180.168.142: routine nightly backup job — unrelated to incident.
+           evidence_collected=3, confirming=1
+
+  STEP 8
+  ACTION:  {"action_type": "query_logs", "ip": "49.114.59.81"}
+  REWARD:  -0.020   cum=-0.045
+  RESULT:  query_logs(49.114.59.81) — nothing of interest.
+           evidence_collected=3, confirming=1
+
+  STEP 9
+  ACTION:  {"action_type": "query_logs", "ip": "86.179.110.158"}
+  REWARD:  -0.016   cum=-0.061
+  RESULT:  query_logs(86.179.110.158) revealed: 86.179.110.158: Windows Defender AV signature update traffic — benign.
+           evidence_collected=4, confirming=1
+
+  STEP 10
+  ACTION:  {"action_type": "query_logs", "ip": "10.0.0.7"}
+  REWARD:  -0.020   cum=-0.081
+  RESULT:  query_logs(10.0.0.7) — nothing of interest.
+           evidence_collected=4, confirming=1
+
+  STEP 11
+  ACTION:  {"action_type": "inspect_endpoint", "host": "ws_host"}
+  REWARD:  +0.080   cum=-0.001
+  RESULT:  inspect_endpoint(ws_host) revealed: ws_host: Cobalt Strike beacon resident in lsass; LSASS read; lateral SMB sessions to file_srv and backup
+           evidence_collected=5, confirming=2
+
+  STEP 12
+  ACTION:  {"action_type": "inspect_endpoint", "host": "file_srv"}
+  REWARD:  -0.020   cum=-0.021
+  RESULT:  inspect_endpoint(file_srv) — nothing of interest.
+           evidence_collected=5, confirming=2
+
+  STEP 13
+  ACTION:  {"action_type": "inspect_endpoint", "host": "backup_srv"}
+  REWARD:  +0.070   cum=+0.049
+  RESULT:  inspect_endpoint(backup_srv) revealed: backup_srv: backup agent process killed; VSS snapshots wiped; ransom note 'README_RECOVER.txt' droppe
+           evidence_collected=6, confirming=3
+
+  STEP 14
+  ACTION:  {"action_type": "escalate_incident"}
+  REWARD:  +0.380   cum=+0.429
+  RESULT:  escalate_incident: escalated real incident — IR team paged
+           evidence_collected=6, confirming=3
+
+  TERMINAL ACTION: escalate_incident  target=None  premature=False
+  CORRECT:        True
+
+------------------------------------------------------------------------
+EPISODE SUMMARY
+  Total reward:   +0.429
+  Steps taken:    14 / 15
+  Evidence revealed: 6
+  Outcome:        CORRECT
+------------------------------------------------------------------------
+
+========================================================================
+SCENARIO: SUPPLY_CHAIN_ATTACK
+========================================================================
+
+INITIAL ALERT: SIEM: anomalous outbound connection from build_srv to unknown IP during nightly CI build. Package signing key accessed outside business hours.
+SEVERITY:      high
+BUDGET:        18 steps
+KNOWN IPs:     ['194.165.230.170', '78.180.168.142', '49.114.59.81', '86.179.110.158', '10.0.0.7', '10.0.4.239']
+KNOWN HOSTS:   ['build_srv', 'artifact_repo', 'prod_srv_a', 'prod_srv_b']
+
+  STEP 1
+  ACTION:  {"action_type": "check_threat_intel", "ip": "194.165.230.170"}
+  REWARD:  +0.070   cum=+0.070
+  RESULT:  check_threat_intel(194.165.230.170) revealed: 194.165.230.170: nation-state tooling cluster (SolarWinds-style TTPs, low-and-slow build-syste
+           evidence_collected=1, confirming=1
+
+  STEP 2
+  ACTION:  {"action_type": "check_threat_intel", "ip": "78.180.168.142"}
+  REWARD:  -0.012   cum=+0.058
+  RESULT:  check_threat_intel(78.180.168.142) revealed: 78.180.168.142: Fastly CDN node, no abuse history.
+           evidence_collected=2, confirming=1
+
+  STEP 3
+  ACTION:  {"action_type": "check_threat_intel", "ip": "49.114.59.81"}
+  REWARD:  -0.020   cum=+0.038
+  RESULT:  check_threat_intel(49.114.59.81) — nothing of interest.
+           evidence_collected=2, confirming=1
+
+  STEP 4
+  ACTION:  {"action_type": "check_threat_intel", "ip": "86.179.110.158"}
+  REWARD:  -0.020   cum=+0.018
+  RESULT:  check_threat_intel(86.179.110.158) — nothing of interest.
+           evidence_collected=2, confirming=1
+
+  STEP 5
+  ACTION:  {"action_type": "check_threat_intel", "ip": "10.0.0.7"}
+  REWARD:  -0.020   cum=-0.002
+  RESULT:  check_threat_intel(10.0.0.7) — nothing of interest.
+           evidence_collected=2, confirming=1
+
+  STEP 6
+  ACTION:  {"action_type": "check_threat_intel", "ip": "10.0.4.239"}
+  REWARD:  -0.020   cum=-0.022
+  RESULT:  check_threat_intel(10.0.4.239) — nothing of interest.
+           evidence_collected=2, confirming=1
+
+  STEP 7
+  ACTION:  {"action_type": "query_logs", "ip": "194.165.230.170"}
+  REWARD:  -0.020   cum=-0.042
+  RESULT:  query_logs(194.165.230.170) — nothing of interest.
+           evidence_collected=2, confirming=1
+
+  STEP 8
+  ACTION:  {"action_type": "query_logs", "ip": "78.180.168.142"}
+  REWARD:  -0.020   cum=-0.062
+  RESULT:  query_logs(78.180.168.142) — nothing of interest.
+           evidence_collected=2, confirming=1
+
+  STEP 9
+  ACTION:  {"action_type": "query_logs", "ip": "49.114.59.81"}
+  REWARD:  -0.014   cum=-0.076
+  RESULT:  query_logs(49.114.59.81) revealed: 49.114.59.81: developer laptop, normal git pulls and IDE traffic.
+           evidence_collected=3, confirming=1
+
+  STEP 10
+  ACTION:  {"action_type": "query_logs", "ip": "86.179.110.158"}
+  REWARD:  -0.020   cum=-0.096
+  RESULT:  query_logs(86.179.110.158) — nothing of interest.
+           evidence_collected=3, confirming=1
+
+  STEP 11
+  ACTION:  {"action_type": "query_logs", "ip": "10.0.0.7"}
+  REWARD:  -0.016   cum=-0.112
+  RESULT:  query_logs(10.0.0.7) revealed: 10.0.0.7: routine package-manager (apt / yum) updates — benign.
+           evidence_collected=4, confirming=1
+
+  STEP 12
+  ACTION:  {"action_type": "query_logs", "ip": "10.0.4.239"}
+  REWARD:  -0.020   cum=-0.132
+  RESULT:  query_logs(10.0.4.239) — nothing of interest.
+           evidence_collected=4, confirming=1
+
+  STEP 13
+  ACTION:  {"action_type": "inspect_endpoint", "host": "build_srv"}
+  REWARD:  +0.080   cum=-0.052
+  RESULT:  inspect_endpoint(build_srv) revealed: build_srv: malicious plugin injected into Jenkins pipeline 3 days ago; plugin exfils signing key on ev
+           evidence_collected=5, confirming=2
+
+  STEP 14
+  ACTION:  {"action_type": "inspect_endpoint", "host": "artifact_repo"}
+  REWARD:  -0.020   cum=-0.072
+  RESULT:  inspect_endpoint(artifact_repo) — nothing of interest.
+           evidence_collected=5, confirming=2
+
+  STEP 15
+  ACTION:  {"action_type": "inspect_endpoint", "host": "prod_srv_a"}
+  REWARD:  +0.080   cum=+0.008
+  RESULT:  inspect_endpoint(prod_srv_a) revealed: prod_srv_a: trojanised package installed via routine update; backdoor beaconing to 194.165.230.170.
+           evidence_collected=6, confirming=3
+
+  STEP 16
+  ACTION:  {"action_type": "inspect_endpoint", "host": "prod_srv_b"}
+  REWARD:  +0.070   cum=+0.078
+  RESULT:  inspect_endpoint(prod_srv_b) revealed: prod_srv_b: same trojanised package, same backdoor beacon to 194.165.230.170 — second compromised pro
+           evidence_collected=7, confirming=4
+
+  STEP 17
+  ACTION:  {"action_type": "identify_attacker", "ip": "194.165.230.170"}
+  REWARD:  +0.980   cum=+1.058
+  RESULT:  identify_attacker(194.165.230.170): CORRECT
+           evidence_collected=7, confirming=4
+
+  TERMINAL ACTION: identify_attacker  target=194.165.230.170  premature=False
+  CORRECT:        True
+
+------------------------------------------------------------------------
+EPISODE SUMMARY
+  Total reward:   +1.058
+  Steps taken:    17 / 18
+  Evidence revealed: 7
+  Outcome:        CORRECT
+------------------------------------------------------------------------
+
+========================================================================
+ALL-SCENARIOS REWARD TABLE
+========================================================================
+  benign_scan              -> total reward +0.688
+  credential_stuffing      -> total reward +1.172
+  phishing_lateral         -> total reward +1.199
+  data_exfiltration        -> total reward +1.342
+  multi_stage_chain        -> total reward +0.514
+  long_horizon_apt         -> total reward +1.401
+  ransomware_deployment    -> total reward +0.429
+  supply_chain_attack      -> total reward +1.058

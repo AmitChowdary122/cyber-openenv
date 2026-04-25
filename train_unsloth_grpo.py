@@ -459,6 +459,43 @@ def _have_gpu_stack() -> bool:
         return False
 
 
+def _maybe_init_wandb(args, mode: str = "real") -> Optional[Any]:
+    """Initialise WandB if --wandb is set. Returns the wandb module or None."""
+    if not getattr(args, "wandb", False):
+        return None
+    try:
+        import wandb
+    except Exception as e:
+        print(f"[wandb] not installed ({e}); continuing without WandB.")
+        return None
+    run_name = (
+        f"grpo-{args.model.split('/')[-1]}-"
+        f"{(args.max_steps if mode=='real' else args.simulate_episodes)}-{mode}"
+    )
+    run = wandb.init(
+        project=getattr(args, "wandb_project", "cybersoc-arena"),
+        name=run_name,
+        config={
+            "mode": mode,
+            "model": args.model,
+            "max_steps": args.max_steps,
+            "n_prompts": args.n_prompts,
+            "seed": args.seed,
+            "lr": args.lr,
+            "batch_size": args.batch_size,
+            "grad_accum": args.grad_accum,
+            "num_generations": args.num_generations,
+            "max_completion_length": args.max_completion_length,
+            "themes": ["long-horizon", "world-modeling", "self-improvement"],
+            "environment": "CyberSOC Arena",
+            "curriculum_tiers": 6,
+            "scenarios": 8,
+        },
+    )
+    print(f"[wandb] run URL: {run.url if run else 'unavailable'}")
+    return wandb
+
+
 def run_simulated(args):
     """
     No-GPU fallback: runs a curriculum-learner rollout (the same one
@@ -468,6 +505,7 @@ def run_simulated(args):
     """
     import math, time
     seed = args.seed
+    wandb = _maybe_init_wandb(args, mode="simulated")
     print("[simulate] no GPU / unsloth detected — running rollout-based "
           "curriculum learner and synthesising training-log artifacts.")
 
@@ -519,6 +557,20 @@ def run_simulated(args):
             print(f"  ep {ep:>4}  tier={curr_env.tier_name:<16}  "
                   f"r_curr={total:+.2f}  r_rand={e_rand['reward']:+.2f}  "
                   f"r_heur={e_heur['reward']:+.2f}  noise={noise:.2f}")
+
+        if wandb is not None:
+            m = curr_env.curriculum_metrics()
+            wandb.log({
+                "episode": ep,
+                "reward/curriculum": total,
+                "reward/random": e_rand["reward"],
+                "reward/heuristic": e_heur["reward"],
+                "curriculum/tier": curr_env.tier,
+                "curriculum/rolling_mean": m["rolling_mean_reward"],
+                "curriculum/progress": m["progress_to_next"],
+                "curriculum/scenario": m["available_scenarios"][-1],
+                "noise_prob": noise,
+            })
 
     # Synthesise a training-log compatible with the GRPO real path.
     # Treat each "training step" as a window over recent episodes.
@@ -600,9 +652,26 @@ def run_simulated(args):
     print(f"log:   {OUTPUT_DIR/'training_log.json'}")
     print(f"NOTE: rerun on a GPU / HF Jobs to replace these with real GRPO logs.")
 
+    if wandb is not None:
+        try:
+            wandb.summary["final_tier"] = curr_env.tier
+            wandb.summary["final_tier_name"] = curr_env.tier_name
+            wandb.summary["trained_mean"] = eval_results["trained_mean"]
+            wandb.summary["heuristic_mean"] = eval_results["heuristic_mean"]
+            wandb.summary["random_mean"] = eval_results["random_mean"]
+            for name in ("reward_curve", "loss_curve",
+                         "curriculum_progress", "baseline_comparison"):
+                p = ASSETS_DIR / f"{name}.png"
+                if p.exists():
+                    wandb.log({f"plots/{name}": wandb.Image(str(p))})
+            wandb.finish()
+        except Exception as e:
+            print(f"[wandb] finish error: {e}")
+
 
 def run_training(args):
     seed = args.seed
+    wandb = _maybe_init_wandb(args, mode="real")
     print(f"[train] seed={seed} | model={args.model} | steps={args.max_steps}")
 
     # ---- Load model with Unsloth ----
@@ -717,6 +786,33 @@ def run_training(args):
                              ASSETS_DIR / "curriculum_progress.png")
     plot_baseline_comparison(eval_results, ASSETS_DIR / "baseline_comparison.png")
 
+    if wandb is not None:
+        try:
+            for entry in log_history:
+                payload = {}
+                if "loss" in entry:
+                    payload["train/loss"] = entry["loss"]
+                if "reward" in entry:
+                    payload["reward/grpo"] = entry["reward"]
+                if "kl" in entry:
+                    payload["train/kl"] = entry["kl"]
+                if "step" in entry:
+                    payload["step"] = entry["step"]
+                if payload:
+                    wandb.log(payload)
+            wandb.summary["trained_mean"] = eval_results["trained_mean"]
+            wandb.summary["heuristic_mean"] = eval_results["heuristic_mean"]
+            wandb.summary["random_mean"] = eval_results["random_mean"]
+            wandb.summary["trained_correct_rate"] = eval_results["trained_correct_rate"]
+            for name in ("reward_curve", "loss_curve",
+                         "curriculum_progress", "baseline_comparison"):
+                p = ASSETS_DIR / f"{name}.png"
+                if p.exists():
+                    wandb.log({f"plots/{name}": wandb.Image(str(p))})
+            wandb.finish()
+        except Exception as e:
+            print(f"[wandb] finish error: {e}")
+
     print("\n=== eval_results.json ===")
     print(json.dumps({k: v for k, v in eval_results.items()
                       if not isinstance(v, list)}, indent=2))
@@ -743,6 +839,10 @@ def main():
                     help="Episodes to run when falling back to simulated mode (CPU).")
     ap.add_argument("--simulate", action="store_true",
                     help="Force the no-GPU rollout pipeline.")
+    ap.add_argument("--wandb", action="store_true",
+                    help="Enable WandB logging (needs WANDB_API_KEY).")
+    ap.add_argument("--wandb_project", default="cybersoc-arena",
+                    help="WandB project name (default: cybersoc-arena).")
     args = ap.parse_args()
     if args.simulate or not _have_gpu_stack():
         run_simulated(args)

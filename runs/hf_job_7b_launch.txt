@@ -1,0 +1,9 @@
+Job submission record
+Job ID:    69ed2090d70108f37acdeee9
+Owner:     amit51
+Flavor:    a10g-small
+Script:    train_7b_hf_jobs.py
+Monitor:   https://huggingface.co/jobs/amit51/69ed2090d70108f37acdeee9
+Cost:      ~$1.00/hr × ~3-4 hrs = ~$3-4
+
+No jobs found

@@ -64,6 +64,8 @@ SCENARIO_TYPES: List[str] = [
     "data_exfiltration",
     "multi_stage_chain",
     "long_horizon_apt",
+    "ransomware_deployment",
+    "supply_chain_attack",
 ]
 
 
@@ -129,6 +131,11 @@ def gen_benign_scan(rng: random.Random) -> Scenario:
         Evidence("correlate_events", host,
                  f"All {src} requests received HTTP 404 / 401 — no successful exploitation.",
                  weight=0.6, confirms_attacker=False, phase=2),
+        Evidence("query_logs", host,
+                 f"{host} access log: same {src} fingerprint repeats hourly, "
+                 f"matches scheduled-scan window — benign, no abuse reports.",
+                 weight=0.5, confirms_attacker=False, phase=2,
+                 tags=("scanner", "scheduled-scan")),
     ]
     return Scenario(
         scenario_type="benign_scan",
@@ -469,6 +476,178 @@ def gen_long_horizon_apt(rng: random.Random) -> Scenario:
 
 
 # ----------------------------------------------------------------------------
+# Scenario 6 — ransomware_deployment (15-step LockBit-style affiliate)
+# ----------------------------------------------------------------------------
+
+def _rand_ip_in_prefix(rng: random.Random, prefix: str) -> str:
+    """Pick a random IP whose first 1-2 octets match `prefix` (e.g. '91.92')."""
+    octets = prefix.split(".")
+    while len(octets) < 4:
+        octets.append(str(rng.randint(0, 255)))
+    octets[-1] = str(rng.randint(2, 250))
+    return ".".join(octets)
+
+
+def gen_ransomware_deployment(rng: random.Random) -> Scenario:
+    attacker = _rand_ip_in_prefix(rng, rng.choice(["91.92", "185.220"]))
+    decoys = [_rand_external_ip(rng) for _ in range(3)] + [_rand_internal_ip(rng)]
+
+    ws = "ws_host"
+    file_srv = "file_srv"
+    backup_srv = "backup_srv"
+    dc = "dc_host"
+    hosts = [ws, file_srv, backup_srv, dc]
+
+    evidence: List[Evidence] = [
+        Evidence("check_threat_intel", attacker,
+                 f"{attacker}: RaaS affiliate, LockBit 3.0 infrastructure (high confidence).",
+                 weight=0.95, phase=1, tags=("ransomware", "raas", "lockbit")),
+        Evidence("query_logs", ws,
+                 f"{ws}: phishing PDF opened 47 min before alert; "
+                 f"PowerShell download cradle to {attacker} (mshta+iex).",
+                 weight=1.0, phase=2, tags=("phishing", "powershell", "implant")),
+        Evidence("inspect_endpoint", ws,
+                 f"{ws}: Cobalt Strike beacon resident in lsass; "
+                 f"LSASS read; lateral SMB sessions to {file_srv} and {backup_srv}.",
+                 weight=1.0, phase=2, tags=("cobalt", "beacon", "lateral")),
+        Evidence("query_logs", file_srv,
+                 f"{file_srv}: 14,312 RENAME *.locked operations in 480 s; "
+                 f"vssadmin delete shadows /all /quiet executed.",
+                 weight=1.0, phase=3, tags=("ransomware", "encryption", "wiper")),
+        Evidence("inspect_endpoint", backup_srv,
+                 f"{backup_srv}: backup agent process killed; VSS snapshots wiped; "
+                 f"ransom note 'README_RECOVER.txt' dropped in every share.",
+                 weight=0.9, phase=3, tags=("ransomware", "backup", "wiper")),
+        Evidence("correlate_events", ws,
+                 f"Full chain: phish on {ws} -> beacon to {attacker} -> "
+                 f"SMB lateral to {file_srv}/{backup_srv} -> mass encrypt + wipe shadows.",
+                 weight=1.0, phase=4, tags=("kill-chain",)),
+        Evidence("inspect_endpoint", dc,
+                 f"{dc}: AD queried for file-share enumeration from {ws} "
+                 f"session token (svc_helpdesk).",
+                 weight=0.7, phase=2, tags=("discovery",)),
+        # decoys
+        Evidence("query_logs", decoys[0],
+                 f"{decoys[0]}: routine nightly backup job — unrelated to incident.",
+                 weight=0.2, confirms_attacker=False, phase=1),
+        Evidence("check_threat_intel", decoys[1],
+                 f"{decoys[1]}: Cloudflare CDN exit node, mixed reputation but no abuse reports.",
+                 weight=0.3, confirms_attacker=False, phase=1),
+        Evidence("query_logs", decoys[2],
+                 f"{decoys[2]}: Windows Defender AV signature update traffic — benign.",
+                 weight=0.1, confirms_attacker=False, phase=1, tags=("av-update",)),
+    ]
+
+    return Scenario(
+        scenario_type="ransomware_deployment",
+        step_budget=15,
+        alert_severity="critical",
+        is_benign=False,
+        initial_alert=(
+            f"EDR: mass file rename events (.locked extension) on {file_srv}. "
+            f"Shadow copies deleted on {backup_srv}. Estimated 14,000 files "
+            f"encrypted in 8 minutes."
+        ),
+        target_hosts=hosts,
+        decoy_ips=decoys,
+        correlation_pairs=[(attacker, ws), (ws, file_srv), (ws, backup_srv)],
+        summary_keywords=[
+            "ransomware", "encryption", "lateral", "backup", "wiper", attacker,
+        ],
+        evidence=evidence,
+        background_logs=_noise_lines(rng, 8),
+        attacker_ip=attacker,
+        seed=rng.randint(0, 1 << 30),
+    )
+
+
+# ----------------------------------------------------------------------------
+# Scenario 7 — supply_chain_attack (18-step nation-state Jenkins compromise)
+# ----------------------------------------------------------------------------
+
+def gen_supply_chain_attack(rng: random.Random) -> Scenario:
+    attacker = _rand_ip_in_prefix(rng, rng.choice(["45.142", "194.165"]))
+    decoys = [_rand_external_ip(rng) for _ in range(3)] + [_rand_internal_ip(rng) for _ in range(2)]
+
+    build = "build_srv"
+    repo = "artifact_repo"
+    prod_a = "prod_srv_a"
+    prod_b = "prod_srv_b"
+    hosts = [build, repo, prod_a, prod_b]
+
+    evidence: List[Evidence] = [
+        Evidence("check_threat_intel", attacker,
+                 f"{attacker}: nation-state tooling cluster (SolarWinds-style TTPs, "
+                 f"low-and-slow build-system targeting).",
+                 weight=0.9, phase=1, tags=("apt", "nation-state", "supply-chain")),
+        Evidence("inspect_endpoint", build,
+                 f"{build}: malicious plugin injected into Jenkins pipeline 3 days ago; "
+                 f"plugin exfils signing key on every build.",
+                 weight=1.0, phase=2, tags=("supply-chain", "build", "key-theft")),
+        Evidence("query_logs", build,
+                 f"{build}: POST to {attacker}:443 carrying signing-key material "
+                 f"at 02:17 UTC (outside business hours).",
+                 weight=1.0, phase=2, tags=("exfiltration", "signing-key")),
+        Evidence("query_logs", repo,
+                 f"{repo}: 3 trojanised packages published with VALID company "
+                 f"signature within 6 h of key theft.",
+                 weight=0.95, phase=3, tags=("supply-chain", "artifact", "signed")),
+        Evidence("inspect_endpoint", prod_a,
+                 f"{prod_a}: trojanised package installed via routine update; "
+                 f"backdoor beaconing to {attacker}.",
+                 weight=1.0, phase=4, tags=("backdoor", "beacon", "compromised")),
+        Evidence("inspect_endpoint", prod_b,
+                 f"{prod_b}: same trojanised package, same backdoor beacon "
+                 f"to {attacker} — second compromised production host.",
+                 weight=0.9, phase=4, tags=("backdoor", "beacon", "compromised")),
+        Evidence("correlate_events", build,
+                 f"Full chain: Jenkins plugin -> signing-key theft -> "
+                 f"poisoned artifact published -> {prod_a} & {prod_b} compromised.",
+                 weight=1.0, phase=5, tags=("kill-chain",)),
+        # decoys
+        Evidence("check_threat_intel", decoys[0],
+                 f"{decoys[0]}: Fastly CDN node, no abuse history.",
+                 weight=0.2, confirms_attacker=False, phase=1),
+        Evidence("query_logs", decoys[1],
+                 f"{decoys[1]}: developer laptop, normal git pulls and IDE traffic.",
+                 weight=0.15, confirms_attacker=False, phase=2),
+        Evidence("inspect_endpoint", decoys[2],
+                 f"{decoys[2]}: clean prod server, no trojanised package, no backdoor.",
+                 weight=0.1, confirms_attacker=False, phase=4),
+        Evidence("query_logs", decoys[3],
+                 f"{decoys[3]}: routine package-manager (apt / yum) updates — benign.",
+                 weight=0.1, confirms_attacker=False, phase=3),
+    ]
+
+    return Scenario(
+        scenario_type="supply_chain_attack",
+        step_budget=18,
+        alert_severity="high",
+        is_benign=False,
+        initial_alert=(
+            f"SIEM: anomalous outbound connection from {build} to unknown IP "
+            f"during nightly CI build. Package signing key accessed outside "
+            f"business hours."
+        ),
+        target_hosts=hosts,
+        decoy_ips=decoys,
+        correlation_pairs=[
+            (attacker, build),
+            (build, repo),
+            (repo, prod_a),
+            (repo, prod_b),
+        ],
+        summary_keywords=[
+            "supply", "chain", "build", "artifact", "signing", "key", attacker,
+        ],
+        evidence=evidence,
+        background_logs=_noise_lines(rng, 10),
+        attacker_ip=attacker,
+        seed=rng.randint(0, 1 << 30),
+    )
+
+
+# ----------------------------------------------------------------------------
 # Registry
 # ----------------------------------------------------------------------------
 
@@ -479,6 +658,8 @@ _GENERATORS = {
     "data_exfiltration": gen_data_exfiltration,
     "multi_stage_chain": gen_multi_stage_chain,
     "long_horizon_apt": gen_long_horizon_apt,
+    "ransomware_deployment": gen_ransomware_deployment,
+    "supply_chain_attack": gen_supply_chain_attack,
 }
 
 

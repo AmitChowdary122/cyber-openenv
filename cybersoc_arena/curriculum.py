@@ -55,12 +55,30 @@ TIERS: List[Tier] = [
           "data_exfiltration", "multi_stage_chain"],
          unlock_threshold=0.80, window=20),
     Tier(5, "Elite Hunter",
-         "20-step APT-41 kill chain: spearphish -> webshell -> lateral -> "
-         "DCSync golden ticket -> DNS exfiltration. Top tier.",
+         "Top tier: APT-41 kill chains, LockBit ransomware deployments, "
+         "and SolarWinds-style supply-chain compromises — with adversarial "
+         "decoys mixed in.",
          ["benign_scan", "credential_stuffing", "phishing_lateral",
-          "data_exfiltration", "multi_stage_chain", "long_horizon_apt"],
+          "data_exfiltration", "multi_stage_chain", "long_horizon_apt",
+          "ransomware_deployment", "supply_chain_attack"],
          unlock_threshold=None, window=25),
 ]
+
+
+# Convincing-looking external IPs used by the Elite-tier adversarial mode to
+# slip extra decoys into the observation. These ranges are cribbed from real
+# threat-intel feeds (TOR exit ranges, bulletproof hosters) — not necessarily
+# malicious in this context, but visually indistinguishable from attackers.
+_ADVERSARIAL_DECOY_PREFIXES = ("185.220.101", "185.220.102", "23.129.64",
+                               "194.165.16", "45.142.213", "91.92.250")
+
+
+def _adversarial_decoys(rng: random.Random, n: int = 2) -> List[str]:
+    out: List[str] = []
+    for _ in range(n):
+        prefix = rng.choice(_ADVERSARIAL_DECOY_PREFIXES)
+        out.append(f"{prefix}.{rng.randint(2, 250)}")
+    return out
 
 
 class CurriculumEnv(_OpenEnvBase):
@@ -77,12 +95,14 @@ class CurriculumEnv(_OpenEnvBase):
     def __init__(self,
                  start_tier: int = 0,
                  seed: Optional[int] = None,
-                 auto_advance: bool = True):
+                 auto_advance: bool = True,
+                 adversarial: bool = False):
         if _HAS_OPENENV:
             super().__init__()
         self._tier: int = max(0, min(start_tier, len(TIERS) - 1))
         self._rng: random.Random = random.Random(seed)
         self._auto_advance: bool = auto_advance
+        self._adversarial: bool = adversarial
 
         # one rolling window per tier (so changing tiers re-collects)
         self._windows: Dict[int, Deque[float]] = {
@@ -110,6 +130,28 @@ class CurriculumEnv(_OpenEnvBase):
         ep_seed = self._rng.randint(0, 1 << 30)
         obs = self._env.reset(scenario_type=scenario_type, seed=ep_seed)
         self._episode_cumulative_reward = 0.0
+
+        # Adversarial mode: at the Elite tier, slip in 2 extra plausible-
+        # looking external decoy IPs the agent has never heard of. They have
+        # NO evidence attached, so any tool call against them yields "nothing
+        # of interest" — a tax on impulsive triagers, a cheap ignore for
+        # patient ones.
+        adv_active = self._adversarial and self._tier >= len(TIERS) - 1
+        if adv_active:
+            extra = _adversarial_decoys(self._rng, n=2)
+            existing = list(obs.get("known_entities", {}).get("ips", []))
+            for ip in extra:
+                if ip not in existing:
+                    existing.append(ip)
+            obs.setdefault("known_entities", {"ips": [], "hosts": []})
+            obs["known_entities"]["ips"] = existing
+            obs["adversarial_mode"] = True
+            obs["adversarial_decoys"] = list(extra)
+            self._adv_decoys = list(extra)
+        else:
+            obs["adversarial_mode"] = False
+            self._adv_decoys = []
+
         obs["curriculum"] = self._curriculum_obs()
         return obs
 
@@ -123,12 +165,27 @@ class CurriculumEnv(_OpenEnvBase):
 
         cur_obs = self._curriculum_obs()
         obs["curriculum"] = cur_obs
+
+        # Carry adversarial state into every step's observation so the agent
+        # can see it throughout the episode (it's only added on reset by the
+        # underlying CyberSOCEnv).
+        adv_active = self._adversarial and self._tier >= len(TIERS) - 1
+        obs["adversarial_mode"] = bool(adv_active)
+        if adv_active and getattr(self, "_adv_decoys", None):
+            existing = list(obs.get("known_entities", {}).get("ips", []))
+            for ip in self._adv_decoys:
+                if ip not in existing:
+                    existing.append(ip)
+            obs["known_entities"]["ips"] = existing
+            obs["adversarial_decoys"] = list(self._adv_decoys)
+
         info = dict(info)
         info["curriculum_tier"] = self._tier
         info["curriculum_tier_name"] = TIERS[self._tier].name
         info["curriculum_scenario"] = self._current_scenario
         info["curriculum_progress"] = cur_obs.get("progress", 0.0)
         info["curriculum_rolling_mean"] = cur_obs.get("rolling_mean", 0.0)
+        info["adversarial_mode"] = bool(adv_active)
         return obs, reward, done, info
 
     @property
@@ -215,6 +272,9 @@ class CurriculumEnv(_OpenEnvBase):
             "window_capacity": win.maxlen,
             "transitions": list(self._tier_transitions),
             "at_max_tier": self._tier >= len(TIERS) - 1,
+            "adversarial_mode": bool(self._adversarial
+                                     and self._tier >= len(TIERS) - 1),
+            "adversarial_decoys": list(getattr(self, "_adv_decoys", []) or []),
         }
 
     def force_tier(self, tier: int) -> None:
