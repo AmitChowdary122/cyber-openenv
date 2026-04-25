@@ -19,9 +19,10 @@ dist/
 .DS_Store
 Thumbs.db
 
-# IDE
+# IDE / agent-local state
 .idea/
 .vscode/
+.claude/
 
 # NOTE: assets/*.png, runs/grpo/training_log.json, runs/grpo/eval_results.json,
 # and runs/grpo/training_log.jsonl are intentionally tracked — they are the
