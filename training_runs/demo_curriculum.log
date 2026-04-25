@@ -1,0 +1,18 @@
+CyberSOC Arena -- CurriculumEnv tier-unlock demo
+episodes=120  window=10  promote_after=8  seed=11
+================================================================================
+  initial: tier=0 (Novice analyst) pool=['benign_scan']
+  ep  15: PROMOTED -> tier 1 (Junior responder)  pool size=2  rolling_mean=+0.00
+    ep  20  tier=1  ep_reward=+0.39  rolling_mean=+0.73
+  ep  23: PROMOTED -> tier 2 (Mid-level analyst)  pool size=3  rolling_mean=+0.00
+  ep  31: PROMOTED -> tier 3 (Senior responder)  pool size=4  rolling_mean=+0.00
+  ep  39: PROMOTED -> tier 4 (Incident lead)  pool size=5  rolling_mean=+0.00
+    ep  40  tier=4  ep_reward=+0.77  rolling_mean=+0.77
+  ep  47: PROMOTED -> tier 5 (APT hunter)  pool size=6  rolling_mean=+0.00
+    ep  60  tier=5  ep_reward=+1.14  rolling_mean=+1.50
+    ep  80  tier=5  ep_reward=+1.74  rolling_mean=+1.64
+    ep 100  tier=5  ep_reward=+1.97  rolling_mean=+1.62
+    ep 120  tier=5  ep_reward=+1.57  rolling_mean=+1.54
+
+FINAL: reached tier 5 (APT hunter)
+  pool: ['benign_scan', 'phishing_lateral', 'credential_stuffing', 'data_exfiltration', 'multi_stage_chain', 'long_horizon_apt']

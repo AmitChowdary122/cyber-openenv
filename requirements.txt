@@ -4,4 +4,18 @@ uvicorn
 pydantic
 requests
 openai
-openenv-core>=0.2.0
+openenv-core>=0.2.3
+
+# Training + evaluation pipeline (CPU-friendly, runs on Colab free tier).
+torch>=2.0
+numpy
+matplotlib
+pandas
+pytest
+transformers
+datasets
+peft
+trl
+accelerate
+huggingface_hub>=0.34.0
+bitsandbytes; platform_system != "Windows"

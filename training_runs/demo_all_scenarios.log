@@ -1,0 +1,166 @@
+CyberSOC Arena -- one heuristic episode per scenario
+seed=42  scenarios=6
+
+==========================================================================================
+SCENARIO: benign_scan   (seed=42)
+==========================================================================================
+ALERT [MEDIUM]: IDS: 4,200 SYN packets in 30s from 3 external IPs
+  hosts:       edge-792, edge-858
+  visible IPs: 198.51.100.189.27, 198.51.100.23.152, 198.51.100.7.190, 203.0.113.63.58, 203.0.113.9.8
+  step budget: 8
+
+  step  1/ 8  query_logs             198.51.100.189.27       reward=-0.050  evidence=0  [step_penalty=-0.05]
+  step  2/ 8  inspect_endpoint       edge-792                reward=-0.025  evidence=1  [step_penalty=-0.05  decoy_evidence=+0.03]
+      EVIDENCE: Firewall: connection-tracking shows 0 successful sessions from external scanners.
+  step  3/ 8  query_logs             198.51.100.23.152       reward=-0.050  evidence=1  [step_penalty=-0.05]
+      EVIDENCE: Firewall: connection-tracking shows 0 successful sessions from external scanners.
+  step  4/ 8  check_threat_intel     198.51.100.7.190        reward=-0.005  evidence=2  [step_penalty=-0.05  decoy_evidence=+0.05]
+      EVIDENCE: ThreatIntel: 198.51.100.7.190 is a known internet scanner (Shodan-like). No history of credential abuse or exploit atte...
+  step  5/ 8  inspect_endpoint       edge-858                reward=-0.050  evidence=2  [step_penalty=-0.05]
+      EVIDENCE: ThreatIntel: 198.51.100.7.190 is a known internet scanner (Shodan-like). No history of credential abuse or exploit atte...
+  step  6/ 8  correlate_events       198.51.100.189.27       reward=-0.050  evidence=2  [step_penalty=-0.05]
+      EVIDENCE: ThreatIntel: 198.51.100.7.190 is a known internet scanner (Shodan-like). No history of credential abuse or exploit atte...
+  step  7/ 8  query_logs             198.51.100.189.27       reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  8/ 8  inspect_endpoint       edge-792                reward=-1.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10  over_budget=-1.00]
+
+  RESULT: terminal=budget_exhausted correct=False   cum_reward=-1.530  evidence_total=2
+
+==========================================================================================
+SCENARIO: phishing_lateral   (seed=42)
+==========================================================================================
+ALERT [HIGH]: EDR: suspicious PowerShell child process on ws-381 after Outlook.exe
+  hosts:       srv-350, ws-381
+  visible IPs: 10.0.174.190, 192.168.36.189, 198.51.100.23.152, 203.0.113.9.8, 45.227.7.190
+  step budget: 10
+
+  step  1/10  query_logs             10.0.174.190            reward=-0.050  evidence=0  [step_penalty=-0.05]
+  step  2/10  inspect_endpoint       srv-350                 reward=-0.050  evidence=0  [step_penalty=-0.05]
+  step  3/10  query_logs             192.168.36.189          reward=-0.040  evidence=1  [step_penalty=-0.05  decoy_evidence=+0.01]
+      EVIDENCE: Logs: backup job failure. Unrelated to incident.
+  step  4/10  check_threat_intel     198.51.100.23.152       reward=-0.050  evidence=1  [step_penalty=-0.05]
+      EVIDENCE: Logs: backup job failure. Unrelated to incident.
+  step  5/10  inspect_endpoint       ws-381                  reward=+0.150  evidence=2  [step_penalty=-0.05  new_attacker_evidence=+0.20]
+      EVIDENCE: EDR: powershell.exe -enc <base64> spawned by OUTLOOK.EXE. AMSI detected reflective DLL load. Mimikatz signature.
+  step  6/10  correlate_events       10.0.174.190            reward=-0.050  evidence=2  [step_penalty=-0.05]
+      EVIDENCE: EDR: powershell.exe -enc <base64> spawned by OUTLOOK.EXE. AMSI detected reflective DLL load. Mimikatz signature.
+  step  7/10  query_logs             10.0.174.190            reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  8/10  inspect_endpoint       srv-350                 reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  9/10  query_logs             192.168.36.189          reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 10/10  check_threat_intel     198.51.100.23.152       reward=-1.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10  over_budget=-1.00]
+
+  RESULT: terminal=budget_exhausted correct=False   cum_reward=-1.690  evidence_total=2
+
+==========================================================================================
+SCENARIO: credential_stuffing   (seed=42)
+==========================================================================================
+ALERT [HIGH]: Auth: 18,000 failed logins in 1h across SSO from 5 source IPs. One source has a successful auth.
+  hosts:       auth-303, auth-674
+  visible IPs: 10.0.56.60, 172.16.63.58, 192.168.189.27, 198.51.100.155.7, 198.51.100.23.152, 203.0.113.9.8, 91.240.7.190
+  step budget: 10
+
+  step  1/10  query_logs             10.0.56.60              reward=-0.050  evidence=0  [step_penalty=-0.05]
+  step  2/10  inspect_endpoint       auth-303                reward=-0.050  evidence=0  [step_penalty=-0.05]
+  step  3/10  query_logs             172.16.63.58            reward=-0.015  evidence=1  [step_penalty=-0.05  decoy_evidence=+0.03]
+      EVIDENCE: SSO: 172.16.63.58 performed 3,100 failed logins, no successes. Source: corporate VPN - matches known load test.
+  step  4/10  check_threat_intel     192.168.189.27          reward=-0.030  evidence=2  [step_penalty=-0.05  decoy_evidence=+0.02]
+      EVIDENCE: ThreatIntel: 192.168.189.27 - residential proxy, mixed reputation.
+  step  5/10  inspect_endpoint       auth-674                reward=-0.050  evidence=2  [step_penalty=-0.05]
+      EVIDENCE: ThreatIntel: 192.168.189.27 - residential proxy, mixed reputation.
+  step  6/10  correlate_events       10.0.56.60              reward=-0.050  evidence=2  [step_penalty=-0.05]
+      EVIDENCE: ThreatIntel: 192.168.189.27 - residential proxy, mixed reputation.
+  step  7/10  query_logs             10.0.56.60              reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  8/10  inspect_endpoint       auth-303                reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  9/10  query_logs             172.16.63.58            reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 10/10  check_threat_intel     192.168.189.27          reward=-1.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10  over_budget=-1.00]
+
+  RESULT: terminal=budget_exhausted correct=False   cum_reward=-1.845  evidence_total=2
+
+==========================================================================================
+SCENARIO: data_exfiltration   (seed=42)
+==========================================================================================
+ALERT [MEDIUM]: DLP: anomalous outbound TLS volume from db-381 (3.2GB/24h vs 50MB baseline)
+  hosts:       db-381
+  visible IPs: 10.0.174.190, 10.0.56.60, 104.21.7.190, 192.168.58.36, 198.51.100.23.152, 203.0.113.9.8
+  step budget: 12
+
+  step  1/12  query_logs             10.0.174.190            reward=-0.050  evidence=0  [step_penalty=-0.05]
+  step  2/12  inspect_endpoint       db-381                  reward=+0.140  evidence=1  [step_penalty=-0.05  new_attacker_evidence=+0.19]
+      EVIDENCE: EDR: scheduled task 'sysmon-update' created 2 days ago, spawns powershell + curl to external CDN-fronted URL.
+  step  3/12  query_logs             10.0.56.60              reward=-0.050  evidence=1  [step_penalty=-0.05]
+      EVIDENCE: EDR: scheduled task 'sysmon-update' created 2 days ago, spawns powershell + curl to external CDN-fronted URL.
+  step  4/12  check_threat_intel     104.21.7.190            reward=+0.120  evidence=2  [step_penalty=-0.05  new_attacker_evidence=+0.17]
+      EVIDENCE: ThreatIntel: 104.21.7.190 is a Cloudflare-fronted endpoint. Domain registered 6 days ago. SSL CN matches DGA pattern.
+  step  5/12  inspect_endpoint       db-381                  reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+      EVIDENCE: ThreatIntel: 104.21.7.190 is a Cloudflare-fronted endpoint. Domain registered 6 days ago. SSL CN matches DGA pattern.
+  step  6/12  correlate_events       10.0.174.190            reward=-0.050  evidence=2  [step_penalty=-0.05]
+      EVIDENCE: ThreatIntel: 104.21.7.190 is a Cloudflare-fronted endpoint. Domain registered 6 days ago. SSL CN matches DGA pattern.
+  step  7/12  query_logs             10.0.174.190            reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  8/12  inspect_endpoint       db-381                  reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  9/12  query_logs             10.0.56.60              reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 10/12  check_threat_intel     104.21.7.190            reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 11/12  inspect_endpoint       db-381                  reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 12/12  correlate_events       10.0.174.190            reward=-1.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10  over_budget=-1.00]
+
+  RESULT: terminal=budget_exhausted correct=False   cum_reward=-1.940  evidence_total=2
+
+==========================================================================================
+SCENARIO: multi_stage_chain   (seed=42)
+==========================================================================================
+ALERT [CRITICAL]: SIEM: kill-chain match - recon then exploit then persistence indicators on srv-381
+  hosts:       db-350, srv-381
+  visible IPs: 10.0.174.190, 10.0.56.60, 185.220.7.190, 192.168.36.189, 198.51.100.23.152, 203.0.113.9.8
+  step budget: 12
+
+  step  1/12  query_logs             10.0.174.190            reward=-0.050  evidence=0  [step_penalty=-0.05]
+  step  2/12  inspect_endpoint       db-350                  reward=-0.050  evidence=0  [step_penalty=-0.05]
+  step  3/12  query_logs             10.0.56.60              reward=-0.050  evidence=0  [step_penalty=-0.05]
+  step  4/12  check_threat_intel     185.220.7.190           reward=+0.130  evidence=1  [step_penalty=-0.05  new_attacker_evidence=+0.18]
+      EVIDENCE: ThreatIntel: 185.220.7.190 attributed to FIN-style actor, active in ransomware staging.
+  step  5/12  inspect_endpoint       srv-381                 reward=+0.150  evidence=2  [step_penalty=-0.05  new_attacker_evidence=+0.20]
+      EVIDENCE: EDR: webshell dropped in /var/www/uploads/. Cron entry persists shell every 5m. Outbound beacon to 185.220.7.190.
+  step  6/12  correlate_events       10.0.174.190            reward=-0.050  evidence=2  [step_penalty=-0.05]
+      EVIDENCE: EDR: webshell dropped in /var/www/uploads/. Cron entry persists shell every 5m. Outbound beacon to 185.220.7.190.
+  step  7/12  query_logs             10.0.174.190            reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  8/12  inspect_endpoint       db-350                  reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  9/12  query_logs             10.0.56.60              reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 10/12  check_threat_intel     185.220.7.190           reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 11/12  inspect_endpoint       srv-381                 reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 12/12  correlate_events       10.0.174.190            reward=-1.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10  over_budget=-1.00]
+
+  RESULT: terminal=budget_exhausted correct=False   cum_reward=-1.820  evidence_total=2
+
+==========================================================================================
+SCENARIO: long_horizon_apt   (seed=42)
+==========================================================================================
+ALERT [CRITICAL]: [APT-SUSPECT] Multi-day low-and-slow activity correlated across 5 hosts (edge -> workstation -> file server -> db -> proxy). Initial signal: anomalous TLS SNI patterns from 203.0.113.7.190. Multiple ...
+  hosts:       db-242, edge-381, fs-328, proxy-854, ws-350
+  visible IPs: 10.0.152.109, 192.168.184.167, 192.168.60.130, 198.51.100.108.57, 198.51.100.174.190, 198.51.100.7.144, 198.51.100.8.24, 203.0.113.7.190
+  step budget: 20
+
+  step  1/20  query_logs             10.0.152.109            reward=-0.050  evidence=0  [step_penalty=-0.05]
+  step  2/20  inspect_endpoint       db-242                  reward=+0.150  evidence=1  [step_penalty=-0.05  new_attacker_evidence=+0.20]
+      EVIDENCE: DB audit: fs-328 ran SELECT * FROM customer_pii with LIMIT 50000 OFFSET k, 10 batches.
+  step  3/20  query_logs             192.168.184.167         reward=-0.050  evidence=1  [step_penalty=-0.05]
+      EVIDENCE: DB audit: fs-328 ran SELECT * FROM customer_pii with LIMIT 50000 OFFSET k, 10 batches.
+  step  4/20  check_threat_intel     192.168.60.130          reward=-0.050  evidence=1  [step_penalty=-0.05]
+      EVIDENCE: DB audit: fs-328 ran SELECT * FROM customer_pii with LIMIT 50000 OFFSET k, 10 batches.
+  step  5/20  inspect_endpoint       edge-381                reward=-0.050  evidence=1  [step_penalty=-0.05]
+      EVIDENCE: DB audit: fs-328 ran SELECT * FROM customer_pii with LIMIT 50000 OFFSET k, 10 batches.
+  step  6/20  correlate_events       10.0.152.109            reward=-0.050  evidence=1  [step_penalty=-0.05]
+      EVIDENCE: DB audit: fs-328 ran SELECT * FROM customer_pii with LIMIT 50000 OFFSET k, 10 batches.
+  step  7/20  query_logs             10.0.152.109            reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  8/20  inspect_endpoint       db-242                  reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  9/20  query_logs             192.168.184.167         reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 10/20  check_threat_intel     192.168.60.130          reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 11/20  inspect_endpoint       edge-381                reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 12/20  correlate_events       10.0.152.109            reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 13/20  query_logs             10.0.152.109            reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 14/20  inspect_endpoint       db-242                  reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 15/20  query_logs             192.168.184.167         reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 16/20  check_threat_intel     192.168.60.130          reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 17/20  inspect_endpoint       edge-381                reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 18/20  correlate_events       10.0.152.109            reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 19/20  query_logs             10.0.152.109            reward=-0.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 20/20  inspect_endpoint       db-242                  reward=-1.150  evidence=1  [step_penalty=-0.05  repeat_penalty=-0.10  over_budget=-1.00]
+
+  RESULT: terminal=budget_exhausted correct=False   cum_reward=-3.200  evidence_total=1

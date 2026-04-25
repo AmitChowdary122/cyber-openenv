@@ -1,0 +1,47 @@
+@'
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+.python-version
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Sandbox + scratch
+.claude/
+foo/
+
+# Big or ephemeral binaries
+*.npz
+*.pt
+*.bin
+*.safetensors
+*.ckpt
+wandb/
+mlruns/
+.cache/
+.huggingface/
+hf_cache/
+
+# Secrets
+.env.local
+*.token
+hf_token*
+
+# But DO commit the small training artifacts (judges look at them)
+!training_runs/**/*.json
+!training_runs/**/*.log
+!assets/*.png
+!notebooks/*.ipynb
+'@ | Out-File -Encoding utf8 -NoNewline .gitignore

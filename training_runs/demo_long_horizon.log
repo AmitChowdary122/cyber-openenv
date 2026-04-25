@@ -1,0 +1,25 @@
+CyberSOC Arena -- long_horizon_apt walkthrough
+seed=314  step_budget=20  hosts=5 visible_ips=8
+====================================================================================================
+ALERT [CRITICAL]: [APT-SUSPECT] Multi-day low-and-slow activity correlated across 5 hosts (edge -> workstation -> file server -> db -> proxy). Initial signal: anomalous TLS SNI patterns from 203.0.113.117.29. Multiple...
+  Hosts:       db-743, edge-279, fs-745, proxy-399, ws-102
+  Visible IPs: 10.0.140.228, 10.0.54.38, 192.168.147.66, 192.168.230.8, 192.168.34.28, 198.51.100.103.54, 198.51.100.15.163, 203.0.113.117.29
+
+  step  1/20  query_logs             203.0.113.117.29          reward=+0.090  evidence=1  [step_penalty=-0.05  new_attacker_evidence=+0.14]
+      EVIDENCE: Edge IDS: 203.0.113.117.29 performed paced TCP/443 probes against edge-279 over 14 days, ~1 packet every 6 minutes. Below standar...
+  step  2/20  check_threat_intel     203.0.113.117.29          reward=+0.070  evidence=2  [step_penalty=-0.05  new_attacker_evidence=+0.12]
+      EVIDENCE: ThreatIntel: 203.0.113.117.29 matches infrastructure of a known APT cluster (low confidence, sinkholed C2).
+  step  3/20  inspect_endpoint       edge-279                  reward=-0.050  evidence=2  [step_penalty=-0.05]
+  step  4/20  query_logs             edge-279                  reward=-0.050  evidence=2  [step_penalty=-0.05]
+  step  5/20  query_logs             192.168.230.8             reward=-0.050  evidence=2  [step_penalty=-0.05]
+  step  6/20  inspect_endpoint       edge-279                  reward=-0.150  evidence=2  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step  7/20  query_logs             fs-745                    reward=+0.150  evidence=3  [step_penalty=-0.05  new_attacker_evidence=+0.20]
+  step  8/20  inspect_endpoint       proxy-399                 reward=-0.035  evidence=4  [step_penalty=-0.05  decoy_evidence=+0.01]
+  step  9/20  correlate_events       edge-279                  reward=-0.050  evidence=4  [step_penalty=-0.05]
+  step 10/20  query_logs             ws-102                    reward=+0.130  evidence=5  [step_penalty=-0.05  new_attacker_evidence=+0.18]
+  step 11/20  correlate_events       203.0.113.117.29          reward=+0.350  evidence=6  [step_penalty=-0.05  new_attacker_evidence=+0.20  correlation_bonus=+0.20]
+  step 12/20  check_threat_intel     203.0.113.117.29          reward=-0.150  evidence=6  [step_penalty=-0.05  repeat_penalty=-0.10]
+  step 13/20  identify_attacker      203.0.113.117.29          reward=+1.800  evidence=6  [correct_attacker_id=+1.50  evidence_quality_bonus=+0.30]
+
+====================================================================================================
+FINAL: terminal=identify_attacker correct=True  cum_reward=+2.055  evidence_revealed=6/attacker_evidence=5

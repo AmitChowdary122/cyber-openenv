@@ -1,0 +1,39 @@
+{
+  "n_eval_episodes": 60,
+  "random_mean_reward": -1.566833333333333,
+  "random_success_rate": 0.08333333333333333,
+  "trained_mean_reward": -1.225166666666667,
+  "trained_success_rate": 0.16666666666666666,
+  "per_scenario": {
+    "benign_scan": {
+      "random_mean": -0.3235,
+      "trained_mean": 1.174,
+      "n_episodes": 10
+    },
+    "phishing_lateral": {
+      "random_mean": -1.825,
+      "trained_mean": -1.6780000000000002,
+      "n_episodes": 10
+    },
+    "credential_stuffing": {
+      "random_mean": -1.92,
+      "trained_mean": -2.0620000000000003,
+      "n_episodes": 10
+    },
+    "data_exfiltration": {
+      "random_mean": -1.8595000000000002,
+      "trained_mean": -1.8470000000000002,
+      "n_episodes": 10
+    },
+    "multi_stage_chain": {
+      "random_mean": -1.8199999999999998,
+      "trained_mean": -1.429,
+      "n_episodes": 10
+    },
+    "long_horizon_apt": {
+      "random_mean": -1.653,
+      "trained_mean": -1.509,
+      "n_episodes": 10
+    }
+  }
+}

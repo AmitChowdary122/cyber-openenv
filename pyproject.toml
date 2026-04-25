@@ -1,24 +1,67 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "cyber-openenv"
-version = "0.1.0"
-description = "Cybersecurity Incident Response OpenEnv Environment"
-authors = [
-    { name = "Amit Chowdary" }
-]
+version = "0.3.0"
+description = "CyberSOC Arena: realistic SOC investigation OpenEnv environment for LLM agents (with adaptive curriculum + 20-step long-horizon APT scenario)"
+authors = [{ name = "Amit Chowdary" }]
 readme = "README.md"
 requires-python = ">=3.10"
-
+keywords = [
+    "openenv", "rl", "llm", "cybersecurity", "soc",
+    "trl", "grpo", "reinforce", "curriculum-learning", "self-improvement",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
+    "openenv-core>=0.2.3",
     "fastapi",
-    "uvicorn",
-    "pydantic",
+    "uvicorn[standard]",
+    "pydantic>=2",
     "requests",
-    "openai",
-    "openenv-core>=0.2.0"
+    "numpy",
+    "matplotlib",
+    "huggingface_hub>=0.34.0",
 ]
 
+[project.optional-dependencies]
+training = [
+    "torch>=2.0",
+    "transformers>=4.46",
+    "datasets>=3.0",
+    "peft>=0.13",
+    "trl>=0.18",
+    "accelerate>=1.0",
+    "bitsandbytes>=0.43",
+]
+ui  = ["gradio>=4.40"]
+dev = ["pytest>=8.0", "pytest-cov>=4.0"]
+
 [project.scripts]
-server = "server.app:main"
+# `uv run server` (used by Hugging Face Spaces) launches the FastAPI app
+# created via `openenv.core.env_server.create_fastapi_app(...)`.
+server = "cybersoc_arena.server:main"
+cybersoc-server = "cybersoc_arena.server:main"
+
+[tool.setuptools.packages.find]
+namespaces = true
+where   = ["."]
+include = ["cybersoc_arena*"]
+exclude = [
+    "data*", "training_runs*", "runs*", "tests*", "assets*",
+    ".claude*", "build*", "dist*", "__pycache__*", "notebooks*", "scripts*",
+]
 
 [tool.openenv]
-entry_point = "server.app:main"
+entry_point = "cybersoc_arena.server:app"
+manifest = "openenv.yaml"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"

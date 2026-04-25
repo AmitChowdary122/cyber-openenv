@@ -1,65 +1,114 @@
 environment:
-  name: "CyberEnv"
-  version: "0.1.0"
-  description: "Cybersecurity incident response simulation environment for AI agents."
+  name: "CyberSOC Arena"
+  version: "0.3.0"
+  description: >
+    Realistic SOC investigation environment where an LLM acts as a Tier-2
+    analyst. The agent triages alerts across 6 incident archetypes (benign
+    scan, phishing + lateral movement, credential stuffing, slow data
+    exfiltration, multi-stage kill chain, and a 20-step long-horizon APT
+    across 5 hosts), gathers evidence through 5 investigative tools, and
+    decides via 4 terminal actions, all under a step budget. Ships with a
+    CurriculumEnv wrapper (Theme 4 self-improvement) that unlocks harder
+    scenarios as the agent's rolling reward crosses tier thresholds.
   author: "Amit Chowdary"
   tags:
     - cybersecurity
+    - soc
     - incident-response
+    - long-horizon
+    - llm-agent
+    - tool-use
     - reinforcement-learning
+    - curriculum-learning
+    - self-improvement
     - openenv
 
+# Standard OpenEnv Gym-style endpoints exposed by `openenv.core.env_server.create_fastapi_app`.
 api:
   base_url: "http://localhost:8000"
+  endpoints:
+    reset:    "/reset"
+    step:     "/step"
+    state:    "/state"
+    health:   "/health"
+    docs:     "/docs"
+    web:      "/web"
+    websocket: "/ws"
 
-endpoints:
-  reset: "/reset"
-  step: "/step"
-  state: "/state"
-  grade: "/grade"
-  tasks: "/tasks"
+server:
+  entry_point: "cybersoc_arena.server:app"
+  port: 8000
 
 models:
+  action_class:      "cybersoc_arena.models:CyberAction"
+  observation_class: "cybersoc_arena.models:CyberObservation"
+  state_class:       "cybersoc_arena.models:CyberState"
+
   observation:
     type: object
+    description: Structured SOC analyst observation (Pydantic CyberObservation)
     properties:
-      logs:
-        type: array
-        items:
-          type: string
-      alerts:
-        type: array
-        items:
-          type: string
-      system_state:
-        type: object
-      goal:
-        type: string
+      alert:             { type: object }
+      step:              { type: integer }
+      remaining_steps:   { type: integer }
+      step_budget:       { type: integer }
+      asset_inventory:   { type: object }
+      evidence_collected: { type: array }
+      evidence_count:    { type: integer }
+      action_history:    { type: array }
+      noise_sample:      { type: array }
+      available_actions: { type: array }
+      goal:              { type: string }
+      info:              { type: object }
+      done:              { type: boolean }
+      reward:            { type: number }
 
   action:
     type: object
+    description: One SOC tool invocation per step (Pydantic CyberAction)
     properties:
       action_type:
         type: string
         enum:
-          - analyze_log
-          - identify_attacker
-          - block_ip
-          - quarantine_system
           - investigate_ip
-      parameters:
-        type: object
+          - query_logs
+          - inspect_endpoint
+          - check_threat_intel
+          - correlate_events
+          - isolate_host
+          - escalate_incident
+          - identify_attacker
+          - close_as_benign
+      ip:      { type: string }
+      host:    { type: string }
+      entity:  { type: string }
+      summary: { type: string }
+    required: [action_type]
 
   reward:
-    type: object
-    properties:
-      value:
-        type: number
+    type: number
+    description: Per-step reward, clipped to [-2, 2]
 
-tasks:
-  - id: easy
-    description: "Identify the attacker IP from logs"
-  - id: medium
-    description: "Identify and block the attacker"
-  - id: hard
-    description: "Fully secure system with minimal threat level"
+scenarios:
+  - id: benign_scan
+    description: "Internet scanner triggers alerts but causes no harm. Tests for false-positive isolation. (6 steps)"
+  - id: phishing_lateral
+    description: "User clicks phishing email, attacker steals credentials and pivots laterally. (10 steps)"
+  - id: credential_stuffing
+    description: "Many failed logins; one IP succeeds. Find the real attacker among decoys. (10 steps)"
+  - id: data_exfiltration
+    description: "Slow, low-volume covert egress over TLS. Hard to spot among normal traffic. (12 steps)"
+  - id: multi_stage_chain
+    description: "Recon -> exploit -> persistence -> exfil. Full short kill chain with multiple correlated indicators. (12 steps)"
+  - id: long_horizon_apt
+    description: "20-step APT campaign across 5 hosts with a 5-phase kill chain (recon, initial access, persistence, lateral movement, exfil). Tests deep planning + state tracking. (20 steps)"
+
+curriculum:
+  description: "Theme 4 (self-improvement) wrapper. Unlocks scenarios as rolling mean reward crosses tier thresholds."
+  tiers:
+    - { index: 0, name: "Novice analyst",     pool: ["benign_scan"],                                                                                                                advance_threshold: 0.50 }
+    - { index: 1, name: "Junior responder",   pool: ["benign_scan", "phishing_lateral"],                                                                                            advance_threshold: 0.70 }
+    - { index: 2, name: "Mid-level analyst",  pool: ["benign_scan", "phishing_lateral", "credential_stuffing"],                                                                     advance_threshold: 0.85 }
+    - { index: 3, name: "Senior responder",   pool: ["benign_scan", "phishing_lateral", "credential_stuffing", "data_exfiltration"],                                                advance_threshold: 0.95 }
+    - { index: 4, name: "Incident lead",      pool: ["benign_scan", "phishing_lateral", "credential_stuffing", "data_exfiltration", "multi_stage_chain"],                           advance_threshold: 1.05 }
+    - { index: 5, name: "APT hunter",         pool: ["benign_scan", "phishing_lateral", "credential_stuffing", "data_exfiltration", "multi_stage_chain", "long_horizon_apt"],       advance_threshold: null }
