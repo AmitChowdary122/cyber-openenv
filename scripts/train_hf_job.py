@@ -1,26 +1,27 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
+#   "cyber-openenv @ git+https://huggingface.co/spaces/amit51/cybersoc-arena",
 #   "openenv-core>=0.2.3",
-#   "trl>=0.18",
-#   "transformers>=4.46",
-#   "accelerate>=1.0",
-#   "peft>=0.13",
+#   "transformers==4.55.2",
+#   "trl==0.18.0",
+#   "datasets==3.6.0",
+#   "accelerate>=1.0,<1.10",
+#   "peft>=0.13,<0.16",
 #   "bitsandbytes>=0.43",
-#   "datasets>=3.0",
 #   "matplotlib>=3.7",
 #   "pydantic>=2.0",
 #   "huggingface_hub>=0.34",
 # ]
 # ///
 
-"""GRPO training for CyberSOC Arena, runnable on Hugging Face Jobs (A100).
+"""GRPO training for CyberSOC Arena, runnable on Hugging Face Jobs (L40S).
 
 This is the headline cloud training run. Unlike the Colab T4 notebook
 (`notebooks/CyberSOC_Arena_GRPO.ipynb`) which trains Qwen2.5-0.5B for ~25
-min, this script trains a meaningfully bigger model on a single A100 80GB
-and pushes EVERYTHING back to a persistent HF Hub repo before the job's
-container is torn down:
+min, this script trains Qwen2.5-1.5B-Instruct on a single L40S 48GB
+(default) and pushes EVERYTHING back to a persistent HF Hub repo before
+the job's container is torn down:
 
   * LoRA adapter weights (so the trained agent can be reloaded)
   * training_log.json              -- per-step reward, loss, completion length
@@ -35,19 +36,20 @@ Launch with:
 
 or directly:
 
-    hf jobs uv run --flavor a100-large --secrets HF_TOKEN \\
+    hf jobs uv run --flavor l40sx1 --secrets HF_TOKEN \\
       https://huggingface.co/spaces/amit51/cybersoc-arena/raw/main/scripts/train_hf_job.py \\
       --base-model Qwen/Qwen2.5-1.5B-Instruct \\
-      --num-prompts 320 --num-generations 8 --epochs 2 \\
+      --num-prompts 480 --num-generations 8 --epochs 3 \\
       --max-completion-length 192 \\
       --output-dir /tmp/cybersoc_grpo \\
       --push-to-hub amit51/cybersoc-arena-qwen2.5-1.5b-grpo
 
 Cost on the $30 hackathon credit
 --------------------------------
-- a100-large (1x A100 80GB) is $2.50/hr.
-- A 320-prompt, 2-epoch, 8-generation run finishes in ~25-35 min: about
-  $1.05-$1.45 per run. Three full runs at this size still leaves ~$26 of credit.
+- l40sx1 (1x L40S 48GB) is $1.80/hr.
+- A 480-prompt, 3-epoch, 8-generation run finishes in ~2 hr on L40S: about
+  $3.60 per run, well within the $30 hackathon credit. The L40S queue is
+  almost always empty in India daytime, while a100-large can sit 30+ min.
 """
 
 from __future__ import annotations
@@ -59,6 +61,7 @@ import random
 import sys
 
 
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 # ─────────────────────────────────────────────────────────────────────────────
 # Prompt rendering and reward function
 # ─────────────────────────────────────────────────────────────────────────────
@@ -201,7 +204,7 @@ def plot_curves(log, eval_results, out_dir, model_label="Qwen2.5-1.5B"):
         ax.plot(steps_l, losses, color="#7570b3", lw=1.6, label="GRPO loss")
         ax.set_xlabel("Training step (#)")
         ax.set_ylabel("Loss")
-        ax.set_title(f"CyberSOC Arena - GRPO loss ({model_label}, A100)")
+        ax.set_title(f"CyberSOC Arena - GRPO loss ({model_label}, L40S)")
         ax.legend(); ax.grid(alpha=0.3); fig.tight_layout()
         fig.savefig(os.path.join(out_dir, "grpo_loss_curve.png"), dpi=130)
         plt.close(fig)
@@ -211,7 +214,7 @@ def plot_curves(log, eval_results, out_dir, model_label="Qwen2.5-1.5B"):
         ax.plot(rsteps, rewards, color="#1b9e77", lw=1.6, label="mean reward")
         ax.set_xlabel("Training step (#)")
         ax.set_ylabel("Mean per-step env reward")
-        ax.set_title(f"CyberSOC Arena - GRPO reward ({model_label}, A100)")
+        ax.set_title(f"CyberSOC Arena - GRPO reward ({model_label}, L40S)")
         ax.legend(); ax.grid(alpha=0.3); fig.tight_layout()
         fig.savefig(os.path.join(out_dir, "grpo_reward_curve.png"), dpi=130)
         plt.close(fig)
@@ -267,7 +270,7 @@ def push_artifacts(repo_id: str, out_dir: str, model, tok,
             path_in_repo=fname,
             repo_id=repo_id,
             repo_type="model",
-            commit_message=f"Add {fname} from HF Jobs A100 run",
+            commit_message=f"Add {fname} from HF Jobs L40S run",
         )
         print(f"[push] uploaded {fname}")
 
@@ -288,7 +291,7 @@ license: apache-2.0
 
 LoRA adapter trained with `trl.GRPOTrainer` against the live
 [CyberSOC Arena](https://huggingface.co/spaces/amit51/cybersoc-arena)
-OpenEnv environment on a single A100 80GB via Hugging Face Jobs.
+OpenEnv environment on a single L40S 48GB via Hugging Face Jobs.
 
 ## Training run
 
@@ -296,7 +299,7 @@ OpenEnv environment on a single A100 80GB via Hugging Face Jobs.
 - Method: GRPO + LoRA (r=16, alpha=32)
 - Reward: live env per-step reward (replayed in a fresh `CyberSOCEnv`
   per completion, with the prompt's scenario+seed)
-- Hardware: 1x A100 80GB
+- Hardware: 1x L40S 48GB
 - See `training_log.json` for per-step loss + reward.
 - See `grpo_loss_curve.png`, `grpo_reward_curve.png`, and
   `grpo_baseline_compare.png` for the headline plots.
@@ -362,15 +365,19 @@ def main():
                     help="Don't push artifacts (logs only locally)")
     args = ap.parse_args()
 
-    # Lazy install of cybersoc_arena from the HF Space (works on HF Jobs)
+    # cybersoc_arena is declared in the PEP-723 dependencies block at the top
+    # of this script, so `uv run` already installs it before main() executes.
+    # If the import still fails here, fall back to `uv pip install` because
+    # `uv run` venvs do NOT ship the standard `pip` module.
     try:
         import cybersoc_arena  # noqa
     except ImportError:
         import subprocess
         subprocess.check_call([
-            sys.executable, "-m", "pip", "install", "--quiet",
+            "uv", "pip", "install", "--quiet",
             "git+https://huggingface.co/spaces/amit51/cybersoc-arena",
         ])
+        import cybersoc_arena  # noqa: E402,F401
 
     from cybersoc_arena import (  # noqa: E402
         CyberSOCEnv, CyberAction, SCENARIO_TYPES,
