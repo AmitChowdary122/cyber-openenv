@@ -123,6 +123,13 @@ Qwen2.5-1.5B-Instruct + LoRA (r=16, alpha=32)** ran on a Hugging Face Jobs
 reward source. Training reward climbed from a starting mean near **-0.23**
 to a steady **+0.15 to +0.40** band by epoch 2.5+.
 
+![GRPO reward curve](assets/grpo_reward_curve.png)
+*Mean per-step environment reward across 720 GRPO log points (480 prompts
+x 3 epochs / per-device batch). Clear monotonic climb from ~-0.20 at
+init to a stable +0.15 to +0.40 band by step ~500 -- the policy is
+learning to pick the right SOC tool on the right target from live env
+reward alone, with no SFT warm-start.*
+
 Per-scenario held-out greedy rollout (4 episodes per scenario, same seeds
 before and after training):
 
@@ -136,12 +143,26 @@ before and after training):
 | `long_horizon_apt`    | -3.30 | -3.30 | 0.00 |
 | **Mean**              | **-2.45** | **-2.33** | **+0.12** |
 
+![GRPO baseline comparison](assets/grpo_baseline_compare.png)
+*Same numbers as the table, plotted side-by-side. The visible green wins
+on `data_exfiltration` and `multi_stage_chain` are the scenarios that
+require cross-host correlation -- exactly the SOC skill the env is built
+to test. Easy and 20-step-budget scenarios are flat in 360 GRPO steps.*
+
 The lifts concentrate on the harder, multi-evidence scenarios
 (`multi_stage_chain` +0.40, `data_exfiltration` +0.31,
 `credential_stuffing` +0.13) -- exactly the cases where tool discipline and
 cross-host correlation matter. The simple scanner and the 20-step APT are
 flat (the APT's 20-step budget dominates whatever marginal tool-choice gains
 GRPO produces in 360 steps).
+
+![GRPO loss curve](assets/grpo_loss_curve.png)
+*GRPO's KL-regularized policy-gradient surrogate loss over the same run.
+**For GRPO, this loss drifting up while reward goes up is the correct
+signal**, not divergence: the loss measures how far the policy has moved
+from the frozen reference (the KL penalty). A flat-zero loss would mean
+the policy isn't updating. Magnitudes here (1e-4 to 8e-4) are normal
+LoRA-GRPO scale.*
 
 Adapter, `training_log.json`, `eval_results.json`, and the three plots
 (`grpo_loss_curve.png`, `grpo_reward_curve.png`, `grpo_baseline_compare.png`)
