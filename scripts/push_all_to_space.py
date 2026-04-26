@@ -50,16 +50,19 @@ SPACE_PATTERNS = [
     # Top-level docs
     "README.md",
     "BLOG.md",
+    "CHANGELOG.md",
     # Configuration the Space needs
     "Dockerfile",
     "openenv.yaml",
     "pyproject.toml",
 ]
 
-# Two PNGs to refresh on the model repo (the corrected L40S titles)
+# Files to push to the model repo: the corrected L40S plots + the polished model card
 MODEL_FILES = [
     ("assets/grpo_reward_curve.png", "grpo_reward_curve.png"),
     ("assets/grpo_loss_curve.png", "grpo_loss_curve.png"),
+    ("assets/grpo_baseline_compare.png", "grpo_baseline_compare.png"),
+    ("assets/model_card.md", "README.md"),
 ]
 
 

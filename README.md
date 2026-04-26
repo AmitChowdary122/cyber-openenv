@@ -27,6 +27,35 @@ tags:
 >
 > **Built for the OpenEnv Hackathon (Meta x Hugging Face x PyTorch, Bangalore 2026)**.
 
+## Try the live env in 30 seconds
+
+The Space is running at <https://amit51-cybersoc-arena.hf.space>. From any
+shell with `curl`:
+
+```bash
+# 1. Spin up an episode (the marquee 20-step APT scenario, fixed seed)
+curl -s -X POST https://amit51-cybersoc-arena.hf.space/reset \
+     -H "Content-Type: application/json" \
+     -d '{"seed": 314, "scenario_type": "long_horizon_apt"}' | python -m json.tool | head -40
+
+# 2. Take one step (investigate the first visible IP)
+curl -s -X POST https://amit51-cybersoc-arena.hf.space/step \
+     -H "Content-Type: application/json" \
+     -d '{"action": {"action_type": "investigate_ip", "ip": "203.0.113.42"}}' \
+     | python -m json.tool | head -40
+
+# 3. Browse the OpenAPI surface (Swagger UI)
+open https://amit51-cybersoc-arena.hf.space/docs
+
+# 4. Try it interactively (HumanAgent /web UI)
+open https://amit51-cybersoc-arena.hf.space/web
+```
+
+For multi-step episodes use the WebSocket session from `CyberSOCAsyncClient`
+(see [Driving a remote HF Space episode](#driving-a-remote-hf-space-episode))
+since OpenEnv's stateless HTTP `/reset` and `/step` create a fresh env per
+request by design.
+
 ---
 
 ## Problem
