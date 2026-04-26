@@ -30,9 +30,12 @@ tags:
 ## Try the live env in 30 seconds
 
 ![CyberSOC Arena /web HumanAgent UI](assets/web_ui_demo.png)
-*The interactive Gradio UI at `/web`, mid-episode on the 20-step
-`long_horizon_apt` scenario. Alert + asset inventory on the left, evidence
-panel on the right, the 9 SOC tools as one-click action buttons.*
+*The interactive Gradio UI at `/web`. Wizard-style flow: Step 1 picks a
+scenario (one click resets the env), Step 2 shows the severity-coloured
+alert + asset inventory + step counter, Step 3 has a tool dropdown with a
+single smart Target field that auto-relabels per tool, Step 4 streams
+evidence and action history as you play. The same env drives the trained
+Qwen2.5-1.5B-Instruct adapter over the WebSocket session at `/ws`.*
 
 The Space is running at <https://amit51-cybersoc-arena.hf.space>. From any
 shell with `curl`:
