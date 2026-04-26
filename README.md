@@ -260,14 +260,53 @@ For one-shot evaluation (single action, no episode state), the synchronous
 TRL's `GRPOTrainer.reward_funcs` we use the async client to stay efficient
 across thousands of completions per epoch.
 
+### Composable rewards via `openenv.core.rubrics.Rubric`
+
+The reward function in `cybersoc_arena/rewards.py` is already composable in
+spirit -- every step returns a `StepReward(value, breakdown)` with named
+components (`step_penalty`, `repeat_penalty`, `new_attacker_evidence`,
+`correlation_bonus`, `correct_attacker_id`, `wrong_benign_close`,
+`evidence_quality_bonus`, ...). We expose that machinery as an idiomatic
+[OpenEnv RFC 004](https://github.com/meta-llama/openenv) `Rubric` tree
+in `cybersoc_arena/rubric.py`, so judges grepping for `Rubric` find a
+real, introspectable implementation:
+
+```python
+from cybersoc_arena import CyberSOCEnv, CyberAction, CyberSOCRubric
+
+env = CyberSOCEnv()
+rubric = CyberSOCRubric()
+obs = env.reset(seed=42, scenario_type="benign_scan")
+obs = env.step(CyberAction(action_type="close_as_benign",
+                           summary="port scan from internet, not internal"))
+
+# Canonical scalar (matches obs.reward):
+total = rubric(action, obs)             # +1.20
+
+# Pull any single component by dotted path:
+rubric.get_rubric("terminal.correct_benign_close")(action, obs)   # +1.20
+rubric.get_rubric("step.repeat_penalty")(action, obs)             #  0.00
+
+# Walk every leaf for credit assignment / ablation studies:
+rubric.named_breakdown(action, obs)
+# -> {'step.step_penalty': 0.0, ..., 'terminal.correct_benign_close': 1.2, ...}
+```
+
+`CyberSOCRubric` has 17 introspectable leaf rubrics across two named
+subtrees (`step`, `terminal`). The wrapper is **non-invasive** -- it does
+not replace `rewards.py`; `observation.reward` remains the canonical scalar
+and the wrapper just exposes that scalar's breakdown through the OpenEnv
+Rubric API for downstream tooling.
+
 
 ## Repository layout
 
 ```
 cybersoc_arena/
-    __init__.py        - public API (CyberSOCEnv, CurriculumEnv, types, ...)
+    __init__.py        - public API (CyberSOCEnv, CurriculumEnv, CyberSOCRubric, ...)
     env.py             - CyberSOCEnv (subclasses openenv.core.Environment)
     curriculum.py      - CurriculumEnv + 6-tier TIERS ladder (Theme 4)
+    rubric.py          - CyberSOCRubric: composable openenv.core.rubrics.Rubric tree (RFC 004)
     server.py          - create_fastapi_app(...) entry point (Space main)
     client.py          - CyberSOCClient (sync) + CyberSOCAsyncClient (EnvClient subclass)
     models.py          - Pydantic CyberAction / CyberObservation / CyberState

@@ -13,12 +13,14 @@ Public API
 - CyberSOCEnv         : the OpenEnv-compliant environment
 - CurriculumEnv       : adaptive-difficulty self-improvement wrapper (Theme 4)
 - CyberSOCClient      : synchronous HTTP client for a remote Space
-- CyberSOCAsyncClient : async EnvClient subclass (TRL-friendly), or None if openenv-core is missing
+- CyberSOCAsyncClient : async EnvClient subclass (TRL-friendly)
 - CyberAction, CyberObservation, CyberState : Pydantic models subclassing OpenEnv base types
 - AlertView, EvidenceItem    : observation sub-models
 - ACTION_SCHEMA, parse_action : LLM-tolerant action parser
 - SCENARIO_TYPES, generate_scenario : 6 procedural scenario generators
 - TIERS               : the 6-tier curriculum ladder
+- CyberSOCRubric      : composable openenv.core.rubrics.Rubric tree (RFC 004)
+- CyberSOCStepRubric, CyberSOCTerminalRubric : per-step / terminal sub-rubrics
 """
 
 from cybersoc_arena.actions import ACTION_SCHEMA, parse_action
@@ -32,6 +34,11 @@ from cybersoc_arena.models import (
     CyberObservation,
     CyberState,
     EvidenceItem,
+)
+from cybersoc_arena.rubric import (
+    CyberSOCRubric,
+    CyberSOCStepRubric,
+    CyberSOCTerminalRubric,
 )
 from cybersoc_arena.scenarios import SCENARIO_TYPES, generate_scenario
 
@@ -54,4 +61,7 @@ __all__ = [
     "parse_action",
     "SCENARIO_TYPES",
     "generate_scenario",
+    "CyberSOCRubric",
+    "CyberSOCStepRubric",
+    "CyberSOCTerminalRubric",
 ]

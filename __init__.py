@@ -16,6 +16,9 @@ from cybersoc_arena import (  # noqa: F401
     CyberSOCAsyncClient,
     CyberSOCClient,
     CyberSOCEnv,
+    CyberSOCRubric,
+    CyberSOCStepRubric,
+    CyberSOCTerminalRubric,
     CyberState,
     EvidenceItem,
     SCENARIO_TYPES,
@@ -33,5 +36,6 @@ __all__ = [
     "AlertView", "EvidenceItem",
     "Action", "ACTION_SCHEMA", "parse_action",
     "SCENARIO_TYPES", "generate_scenario",
+    "CyberSOCRubric", "CyberSOCStepRubric", "CyberSOCTerminalRubric",
     "__version__",
 ]
