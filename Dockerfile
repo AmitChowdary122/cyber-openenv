@@ -27,7 +27,8 @@ RUN pip install --upgrade pip && \
         "openenv-core>=0.2.3" \
         "fastapi" "uvicorn[standard]" "pydantic>=2" \
         "requests" "numpy" "matplotlib" \
-        "gradio>=4.40"
+        "gradio>=4.40" \
+        "jinja2>=3.1.2"
 
 COPY . /app
 RUN pip install -e .

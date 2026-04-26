@@ -1,10 +1,11 @@
 """OpenEnv-compliant FastAPI server for CyberSOC Arena.
 
-Built on top of openenv.core.env_server. Tries the Gradio-backed
-``create_web_interface_app`` first (so the Space exposes the interactive
-``/web`` HumanAgent UI alongside the JSON surface), and falls back to the
-plain ``create_fastapi_app`` if gradio is missing -- so the env still
-serves all JSON endpoints in that case.
+Tries the Gradio-backed ``create_web_interface_app`` with our custom
+SOC-analyst Gradio UI first. Falls back to the generic auto-generated
+Gradio form if our custom builder fails to import or build, and finally
+falls back to the plain ``create_fastapi_app`` (JSON-only) if gradio
+itself is missing. So the JSON ``/reset``, ``/step``, ``/state`` surface
+keeps working in every failure mode.
 
 Endpoints exposed:
   * POST /reset    : start a new episode (optionally with seed)
@@ -12,15 +13,8 @@ Endpoints exposed:
   * GET  /state    : current episode metadata (no ground-truth leak)
   * GET  /health   : liveness probe
   * GET  /docs     : OpenAPI / Swagger UI
-  * GET  /web      : interactive HumanAgent Gradio UI (when gradio installed)
+  * GET  /web      : custom SOC-analyst Gradio UI (when gradio installed)
   * WS   /ws       : persistent WebSocket session (used by EnvClient)
-
-Run locally:
-  uv run server                            # via the [project.scripts] shim
-  uvicorn cybersoc_arena.server:app --host 0.0.0.0 --port 8000
-
-On Hugging Face Spaces the Dockerfile invokes the `server` entry point
-defined in pyproject.toml.
 """
 
 from __future__ import annotations
@@ -32,22 +26,40 @@ from cybersoc_arena.models import CyberAction, CyberObservation
 
 
 def _create_app() -> Any:
-    """Build the FastAPI app, preferring the Gradio /web variant."""
+    """Build the FastAPI app, preferring the custom Gradio /web UI."""
     import sys
     import traceback
 
+    # Step 1: try gradio + custom CyberSOC builder
     try:
         from openenv.core.env_server.web_interface import (
             create_web_interface_app,
         )
-        print("[server] building /web Gradio UI via create_web_interface_app",
-              flush=True)
-        app = create_web_interface_app(
-            env=CyberSOCEnv,
-            action_cls=CyberAction,
-            observation_cls=CyberObservation,
-            env_name="cybersoc-arena",
-        )
+        try:
+            from cybersoc_arena.web_ui import build_cybersoc_gradio_ui
+            print("[server] building /web with custom CyberSOC Gradio UI",
+                  flush=True)
+            app = create_web_interface_app(
+                env=CyberSOCEnv,
+                action_cls=CyberAction,
+                observation_cls=CyberObservation,
+                env_name="cybersoc-arena",
+                gradio_builder=build_cybersoc_gradio_ui,
+            )
+        except Exception as exc:
+            print(
+                f"[server] custom Gradio builder failed "
+                f"({exc.__class__.__name__}: {exc}); "
+                "falling back to default Gradio UI.",
+                flush=True,
+            )
+            traceback.print_exc()
+            app = create_web_interface_app(
+                env=CyberSOCEnv,
+                action_cls=CyberAction,
+                observation_cls=CyberObservation,
+                env_name="cybersoc-arena",
+            )
         web_present = "/web" in [r.path for r in app.routes]
         print(f"[server] /web route registered: {web_present}", flush=True)
         return app
