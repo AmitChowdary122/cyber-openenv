@@ -219,6 +219,10 @@ def build_cybersoc_gradio_ui(
         try:
             data = await web_manager.reset_environment(kwargs)
             obs = data.get("observation", {}) or _initial_obs()
+            # OpenEnv puts reward + done at the TOP level of the response,
+            # not inside observation. Inject them so helpers find them.
+            obs["reward"] = data.get("reward", 0.0)
+            obs["done"] = data.get("done", False)
             status = (f"Reset OK -- scenario `{scenario}`. Now read the alert, "
                       f"then pick a tool below.")
         except Exception as exc:
@@ -244,8 +248,11 @@ def build_cybersoc_gradio_ui(
         try:
             data = await web_manager.step_environment(action)
             obs = data.get("observation", {}) or _initial_obs()
-            last_reward = float(obs.get("reward", 0.0) or 0.0)
-            done = obs.get("done", False)
+            # OpenEnv puts reward + done at the top level of the response.
+            obs["reward"] = data.get("reward", 0.0)
+            obs["done"] = data.get("done", False)
+            last_reward = float(obs["reward"])
+            done = bool(obs["done"])
             status = (
                 f"Step OK -- {tool_key}({target_field}={target_value or '(empty)'}) "
                 f"-> reward {last_reward:+.3f}"
