@@ -17,11 +17,9 @@
 
 """GRPO training for CyberSOC Arena, runnable on Hugging Face Jobs (L40S).
 
-This is the headline cloud training run. Unlike the Colab T4 notebook
-(`notebooks/CyberSOC_Arena_GRPO.ipynb`) which trains Qwen2.5-0.5B for ~25
-min, this script trains Qwen2.5-1.5B-Instruct on a single L40S 48GB
-(default) and pushes EVERYTHING back to a persistent HF Hub repo before
-the job's container is torn down:
+This is the headline cloud training run. It trains Qwen2.5-1.5B-Instruct
+on a single L40S 48GB (default) and pushes EVERYTHING back to a
+persistent HF Hub repo before the job's container is torn down:
 
   * LoRA adapter weights (so the trained agent can be reloaded)
   * training_log.json              -- per-step reward, loss, completion length

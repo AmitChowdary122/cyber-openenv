@@ -190,12 +190,6 @@ pip install -e .
 python train_reinforce.py --episodes 3000
 ```
 
-For a free Colab T4 GRPO run on Qwen2.5-0.5B (~25 min):
-
-```bash
-# notebooks/CyberSOC_Arena_GRPO.ipynb -- end-to-end, push to your own HF Hub repo at the bottom
-```
-
 ---
 
 ## What's next

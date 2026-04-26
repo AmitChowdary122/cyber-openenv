@@ -178,9 +178,6 @@ bash scripts/run_hf_job_a100.sh
 FLAVOR=h200 bash scripts/run_hf_job_a100.sh
 ```
 
-A free Colab T4 path (Qwen2.5-0.5B-Instruct, ~25 min) is also provided in
-[`notebooks/CyberSOC_Arena_GRPO.ipynb`](notebooks/CyberSOC_Arena_GRPO.ipynb)
-for reviewers without HF compute credits.
 
 ## How the env actually works
 
@@ -321,12 +318,12 @@ demo_run.py            - one heuristic episode of every scenario
 demo_curriculum.py     - tier-unlock visualisation
 demo_long_horizon.py   - 20-step APT walkthrough
 
-notebooks/
-    CyberSOC_Arena_GRPO.ipynb     - Colab T4 GRPO run (TRL + Qwen2.5-0.5B + LoRA)
-
 scripts/
-    train_hf_job.py    - PEP-723 inline-dep GRPO script for HF Jobs
-    run_hf_job.sh      - one-command launcher
+    train_hf_job.py        - PEP-723 inline-dep GRPO script for HF Jobs L40S
+    run_hf_job_a100.sh     - one-command launcher (default flavor: l40sx1)
+    regenerate_plots.py    - rebuild GRPO plots from training_log.json
+    plot_curriculum_full.py - generate the 6-tier curriculum staircase plot
+    push_all_to_space.py   - one-shot HF Space + model repo uploader
 
 assets/
     reward_curve.png   loss_curve.png   curriculum_progress.png   baseline_comparison.png
@@ -344,10 +341,10 @@ Dockerfile             - HF Space-ready
 ## Submission links
 
 - **Hugging Face Space (env):** <https://huggingface.co/spaces/amit51/cybersoc-arena>
-- **Mini-blog (this README + writeup):** [BLOG.md](BLOG.md)
-- **2-minute pitch deck:** [PRESENTATION.md](PRESENTATION.md)
-- **Colab GRPO notebook:** [notebooks/CyberSOC_Arena_GRPO.ipynb](notebooks/CyberSOC_Arena_GRPO.ipynb)
-- **HF Jobs launcher:** [scripts/run_hf_job.sh](scripts/run_hf_job.sh)
+- **Mini-blog (separate writeup):** [BLOG.md](BLOG.md)
+- **Trained model + plots + logs:** <https://huggingface.co/amit51/cybersoc-arena-qwen2.5-1.5b-grpo>
+- **GitHub mirror:** <https://github.com/AmitChowdary122/cyber-openenv>
+- **HF Jobs launcher:** [scripts/run_hf_job_a100.sh](scripts/run_hf_job_a100.sh)
 - **OpenEnv release used:** `openenv-core >= 0.2.3`
 
 ## Safety

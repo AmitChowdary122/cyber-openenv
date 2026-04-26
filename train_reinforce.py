@@ -21,10 +21,10 @@ The heuristic target-picker handles "WHICH IP/host" while the policy learns
 This keeps the learning problem small enough to solve on CPU, while still
 producing measurable improvement over a random meta-policy.
 
-The Colab notebook (notebooks/CyberSOC_Arena_GRPO.ipynb) and the HF Jobs
-script (scripts/run_hf_job.sh) provide the second, larger-scale training
-run with TRL's GRPOTrainer + an actual Qwen2-0.5B LLM. Both train on the
-same env, so the reward curves are directly comparable.
+The HF Jobs script (scripts/run_hf_job_a100.sh -> scripts/train_hf_job.py)
+provides the second, larger-scale training run with TRL's GRPOTrainer +
+Qwen2.5-1.5B-Instruct + LoRA on an L40S 48GB. Both train on the same env,
+so the reward curves are directly comparable.
 
 Output
 ------

@@ -6,7 +6,7 @@ requests
 openai
 openenv-core>=0.2.3
 
-# Training + evaluation pipeline (CPU-friendly, runs on Colab free tier).
+# Training + evaluation pipeline (CPU baseline runs locally; GRPO runs on HF Jobs L40S).
 torch>=2.0
 numpy
 matplotlib
