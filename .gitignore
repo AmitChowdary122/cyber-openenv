@@ -43,4 +43,5 @@ hf_token*
 !training_runs/**/*.json
 !training_runs/**/*.log
 !assets/*.png
+!notebooks/*.ipynb
 '@ | Out-File -Encoding utf8 -NoNewline .gitignore

@@ -68,8 +68,18 @@ OpenEnv Hackathon Round 2 submission (Meta x Hugging Face x PyTorch, Bangalore 2
 - `BLOG.md` -- separate standalone writeup for the hackathon's "mini-blog
   on Hugging Face" deliverable.
 
+### Notebooks
+- `notebooks/CyberSOC_Arena_demo.ipynb` -- 5-minute Colab demo (CPU only):
+  install -> connect to live Space -> walk one `long_horizon_apt` episode ->
+  view trained model's BEFORE/AFTER plots from the model repo -> 30-second
+  numpy REINFORCE micro-train showing the env-driven training loop.
+  Not the headline GRPO training run (that needs an L40S); it's a
+  see-and-verify notebook that lets reviewers confirm the env works in
+  5 minutes on free Colab CPU.
+
 ### Removed in v0.3.0-hackathon
-- `notebooks/CyberSOC_Arena_GRPO.ipynb` (Colab T4 + Qwen2.5-0.5B path -- not used in submission)
+- `notebooks/CyberSOC_Arena_GRPO.ipynb` (old Qwen2.5-0.5B Colab T4 GRPO
+  attempt -- replaced by the simpler `CyberSOC_Arena_demo.ipynb` above)
 - `scripts/run_hf_job.sh` (T4-medium launcher; superseded by `scripts/run_hf_job_l40s.sh`)
 - `PRESENTATION.md` (slide-deck script -- subsumed by `BLOG.md`)
 - `SUBMIT.md` (internal handoff doc -- not a hackathon deliverable)

@@ -373,7 +373,8 @@ Dockerfile             - HF Space-ready
 - **Mini-blog (separate writeup):** [BLOG.md](BLOG.md)
 - **Trained model + plots + logs:** <https://huggingface.co/amit51/cybersoc-arena-qwen2.5-1.5b-grpo>
 - **GitHub mirror:** <https://github.com/AmitChowdary122/cyber-openenv>
-- **HF Jobs launcher:** [scripts/run_hf_job_l40s.sh](scripts/run_hf_job_l40s.sh)
+- **5-min Colab demo:** [`notebooks/CyberSOC_Arena_demo.ipynb`](notebooks/CyberSOC_Arena_demo.ipynb) -- [open in Colab](https://colab.research.google.com/github/AmitChowdary122/cyber-openenv/blob/main/notebooks/CyberSOC_Arena_demo.ipynb)
+- **HF Jobs launcher (the real GRPO training run):** [scripts/run_hf_job_l40s.sh](scripts/run_hf_job_l40s.sh)
 - **OpenEnv release used:** `openenv-core >= 0.2.3`
 
 ## Safety

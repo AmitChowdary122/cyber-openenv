@@ -47,6 +47,8 @@ SPACE_PATTERNS = [
     "scripts/push_all_to_space.py",
     # All current plots
     "assets/*.png",
+    # 5-minute Colab demo notebook
+    "notebooks/CyberSOC_Arena_demo.ipynb",
     # Top-level docs
     "README.md",
     "BLOG.md",
