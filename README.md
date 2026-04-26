@@ -201,10 +201,10 @@ The launcher is one command:
 
 ```bash
 # Default: 1x L40S 48GB ($1.80/hr), ~$1.20 of the $30 hackathon credit
-bash scripts/run_hf_job_a100.sh
+bash scripts/run_hf_job_l40s.sh
 
 # Override flavor if you want H200 / A100-large
-FLAVOR=h200 bash scripts/run_hf_job_a100.sh
+FLAVOR=h200 bash scripts/run_hf_job_l40s.sh
 ```
 
 
@@ -349,7 +349,7 @@ demo_long_horizon.py   - 20-step APT walkthrough
 
 scripts/
     train_hf_job.py        - PEP-723 inline-dep GRPO script for HF Jobs L40S
-    run_hf_job_a100.sh     - one-command launcher (default flavor: l40sx1)
+    run_hf_job_l40s.sh     - one-command launcher (default flavor: l40sx1)
     regenerate_plots.py    - rebuild GRPO plots from training_log.json
     plot_curriculum_full.py - generate the 6-tier curriculum staircase plot
     push_all_to_space.py   - one-shot HF Space + model repo uploader
@@ -373,7 +373,7 @@ Dockerfile             - HF Space-ready
 - **Mini-blog (separate writeup):** [BLOG.md](BLOG.md)
 - **Trained model + plots + logs:** <https://huggingface.co/amit51/cybersoc-arena-qwen2.5-1.5b-grpo>
 - **GitHub mirror:** <https://github.com/AmitChowdary122/cyber-openenv>
-- **HF Jobs launcher:** [scripts/run_hf_job_a100.sh](scripts/run_hf_job_a100.sh)
+- **HF Jobs launcher:** [scripts/run_hf_job_l40s.sh](scripts/run_hf_job_l40s.sh)
 - **OpenEnv release used:** `openenv-core >= 0.2.3`
 
 ## Safety

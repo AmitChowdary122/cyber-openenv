@@ -178,10 +178,10 @@ The launcher is one command, on the $30 hackathon credit:
 ```bash
 git clone https://github.com/AmitChowdary122/cyber-openenv && cd cyber-openenv
 hf auth login                                  # write-scope token
-bash scripts/run_hf_job_a100.sh                # default: 1x L40S 48GB
+bash scripts/run_hf_job_l40s.sh                # default: 1x L40S 48GB
 ```
 
-That kicks off the same training run, pushes the LoRA adapter + plots + logs to `huggingface.co/<your-user>/cybersoc-arena-qwen2.5-1.5b-grpo`, and prints the URL when done. Override the GPU with `FLAVOR=h200 bash scripts/run_hf_job_a100.sh` (faster but $5/hr) or `FLAVOR=a100-large` (longer queue right now).
+That kicks off the same training run, pushes the LoRA adapter + plots + logs to `huggingface.co/<your-user>/cybersoc-arena-qwen2.5-1.5b-grpo`, and prints the URL when done. Override the GPU with `FLAVOR=h200 bash scripts/run_hf_job_l40s.sh` (faster but $5/hr) or `FLAVOR=a100-large` (longer queue right now).
 
 For a CPU baseline that runs locally in 12 seconds:
 

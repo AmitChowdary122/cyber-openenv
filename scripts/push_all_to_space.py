@@ -41,7 +41,7 @@ SPACE_PATTERNS = [
     "client.py",
     # Scripts (training + plot regeneration)
     "scripts/train_hf_job.py",
-    "scripts/run_hf_job_a100.sh",
+    "scripts/run_hf_job_l40s.sh",
     "scripts/regenerate_plots.py",
     "scripts/plot_curriculum_full.py",
     "scripts/push_all_to_space.py",

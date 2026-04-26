@@ -56,7 +56,7 @@ OpenEnv Hackathon Round 2 submission (Meta x Hugging Face x PyTorch, Bangalore 2
 - `assets/reward_curve.png`, `loss_curve.png`, `baseline_comparison.png` -- REINFORCE baseline
 
 ### Tooling
-- `scripts/run_hf_job_a100.sh` -- one-command HF Jobs launcher (default `l40sx1`).
+- `scripts/run_hf_job_l40s.sh` -- one-command HF Jobs launcher (default `l40sx1`).
 - `scripts/regenerate_plots.py` -- replot from `training_log.json` without re-training.
 - `scripts/plot_curriculum_full.py` -- generate the 6-tier staircase plot.
 - `scripts/push_all_to_space.py` -- one-shot HF Space + model repo uploader.
@@ -70,7 +70,7 @@ OpenEnv Hackathon Round 2 submission (Meta x Hugging Face x PyTorch, Bangalore 2
 
 ### Removed in v0.3.0-hackathon
 - `notebooks/CyberSOC_Arena_GRPO.ipynb` (Colab T4 + Qwen2.5-0.5B path -- not used in submission)
-- `scripts/run_hf_job.sh` (T4-medium launcher; superseded by `scripts/run_hf_job_a100.sh`)
+- `scripts/run_hf_job.sh` (T4-medium launcher; superseded by `scripts/run_hf_job_l40s.sh`)
 - `PRESENTATION.md` (slide-deck script -- subsumed by `BLOG.md`)
 - `SUBMIT.md` (internal handoff doc -- not a hackathon deliverable)
 

@@ -31,6 +31,7 @@ OBSOLETE = [
     ("notebooks/CyberSOC_Arena_GRPO.ipynb", "file"),
     ("notebooks", "folder"),
     ("scripts/run_hf_job.sh", "file"),
+    ("scripts/run_hf_job_a100.sh", "file"),  # renamed to run_hf_job_l40s.sh
     ("PRESENTATION.md", "file"),
     ("SUBMIT.md", "file"),
 ]

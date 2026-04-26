@@ -30,7 +30,7 @@ persistent HF Hub repo before the job's container is torn down:
 
 Launch with:
 
-    bash scripts/run_hf_job_a100.sh
+    bash scripts/run_hf_job_l40s.sh
 
 or directly:
 

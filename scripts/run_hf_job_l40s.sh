@@ -20,7 +20,7 @@
 # What this does
 # --------------
 #   - Allocates a single L40S 48GB ($1.80/hr) by default.
-#   - Trains a Qwen2.5-1.5B-Instruct LoRA adapter for ~40 min using
+#   - Trains a Qwen2.5-1.5B-Instruct LoRA adapter for ~2 hr using
 #     trl.GRPOTrainer with the live CyberSOC Arena env as the reward source.
 #   - 480 prompts x 3 epochs x 8 generations gives ~360 logged training
 #     steps -- enough to produce a visibly improving reward curve.
@@ -32,9 +32,9 @@
 #       amit51/cybersoc-arena-qwen2.5-1.5b-grpo
 #
 # Estimated cost on the $30 hackathon credit:
-#   - L40S (default):  ~$1.20  (~40 min @ $1.80/hr)
-#   - A100-large:      ~$1.30  (~30 min @ $2.50/hr, but queue can be slow)
-#   - H200:            ~$1.50  (~20 min @ $5.00/hr, fastest if available)
+#   - L40S (default):  ~$3.60  (~2 hr @ $1.80/hr, the actual headline run)
+#   - A100-large:      ~$5.00  (~2 hr @ $2.50/hr, but queue can be slow)
+#   - H200:            ~$10.00 (~2 hr @ $5.00/hr, fastest if available)
 #
 # Track in real time:
 #   hf jobs ps                         # list jobs

@@ -157,7 +157,7 @@ on the env's HF Space.
 ```bash
 git clone https://github.com/AmitChowdary122/cyber-openenv && cd cyber-openenv
 hf auth login                     # write-scope token
-bash scripts/run_hf_job_a100.sh   # default: 1x L40S 48GB, ~$3.60
+bash scripts/run_hf_job_l40s.sh   # default: 1x L40S 48GB, ~$3.60
 ```
 
 That kicks off the same training run, pushes the adapter + plots + logs to
