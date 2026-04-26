@@ -29,6 +29,11 @@ tags:
 
 ## Try the live env in 30 seconds
 
+![CyberSOC Arena /web HumanAgent UI](assets/web_ui_demo.png)
+*The interactive Gradio UI at `/web`, mid-episode on the 20-step
+`long_horizon_apt` scenario. Alert + asset inventory on the left, evidence
+panel on the right, the 9 SOC tools as one-click action buttons.*
+
 The Space is running at <https://amit51-cybersoc-arena.hf.space>. From any
 shell with `curl`:
 

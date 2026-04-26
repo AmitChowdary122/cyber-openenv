@@ -171,6 +171,40 @@ Three things actually surprised me:
 
 ---
 
+## Methodology: how the reward weights were chosen
+
+The reward function is a single function in the env, but the *values* of its 17 components were tuned over many short REINFORCE runs (12 seconds of CPU each) before the L40S GRPO commit. The principles I converged on:
+
+1. **The single most punished action must be the single most expensive real-world mistake.** In a real SOC, **closing a real incident as benign** loses the most money (intrusion goes undetected for hours/days). That gets the largest negative magnitude in the env: `wrong_benign_close = -1.50`. By contrast, isolating a benign host (`wrong_isolate = -1.00`) is bad but reversible — you can un-isolate within minutes. The *ratio* between these two penalties matters more than their absolute size.
+
+2. **Per-step shaping must be small enough not to overwhelm the terminal signal.** Initial attempts had `step_penalty = -0.20` and `new_attacker_evidence = +1.00`; the agent learned to spam high-reward investigations and never commit. Dropping shaping by 5x (`-0.05` and `+0.20`) restored the gradient toward terminal actions. Rule of thumb that worked: **shaping reward magnitudes should be ~10x smaller than terminal reward magnitudes.**
+
+3. **Decoy reward must be *positive but small*.** A naive design gives 0 reward for inspecting a decoy — but then the agent learns to *avoid* exploring anything it can't pre-classify, which catastrophically over-fits in the multi-stage scenarios. Setting `decoy_evidence = +0.05 * weight` (vs `+0.20 * weight` for real evidence) restored exploration without rewarding wrong attribution. **Exploration of decoys is a feature; attribution of decoys is a bug.**
+
+4. **The evidence-quality bonus only fires at >=3 attacker pieces** (`evidence_quality_bonus = +0.30`). Earlier versions awarded it at >=1, which let the agent identify attackers from a single weak signal. The `>=3` threshold makes it cheap to reach on the long-horizon scenarios (where there's plenty of evidence to gather) and impossible to reach on benign ones (where there *is* no attacker evidence). This nudges the agent toward gathering more evidence before committing.
+
+5. **Per-step rewards clipped to [-2, 2].** A single step that triggers multiple bonuses (correlation lands a real pair *and* reveals new attacker evidence) could otherwise dominate a GRPO batch. Clipping prevents one lucky step from setting an unrealistic baseline that future steps can't match.
+
+### Hyperparameters that didn't work
+
+| Tried | Outcome | Final value |
+|---|---|---|
+| `num_generations=4` (instead of 8) | GRPO advantage estimate too noisy with only 4 samples per prompt; reward curve plateaued early | `8` |
+| `max_completion_length=384` | Wall clock doubled; reward improvement was the same | `192` |
+| `LoRA r=8` (instead of 16) | Reward improvement halved; the policy didn't have enough capacity to encode the tool-discipline bias | `16` |
+| `learning_rate=1e-3` | KL exploded after epoch 1, reward collapsed | TRL default (`1e-6` for GRPO with `beta=0.04`) |
+| `epochs=1` (single pass) | Curve was still trending up at the end; clearly under-trained | `3` |
+| Eval with `do_sample=True, temperature=0.7` | High variance episode-to-episode obscured the BEFORE/AFTER signal | Greedy (`do_sample=False`) at eval time |
+
+### What I'd try with more compute
+
+- **`num_prompts=2000` instead of 480.** Curve was still trending up at the end of 360 GRPO steps; more steps probably moves the `long_horizon_apt` flat line.
+- **A second pass with the trained adapter as the reference policy** (recursive self-improvement). The KL term is currently anchored to the untrained model; re-anchoring after epoch 1 should let the policy diverge further without exploding KL.
+- **Curriculum-aware GRPO** that promotes scenarios mid-training based on rolling reward (the `CurriculumEnv` machinery is already there; just plumb it into the GRPO sampler).
+- **A larger base model** (Qwen2.5-7B on H200) to test whether the per-scenario lifts scale with model size on this domain.
+
+---
+
 ## Reproducing this run
 
 The launcher is one command, on the $30 hackathon credit:
