@@ -25,6 +25,7 @@ SPACE_PATTERNS = [
     # Core package
     "cybersoc_arena/__init__.py",
     "cybersoc_arena/rubric.py",
+    "cybersoc_arena/web_ui.py",
     "cybersoc_arena/env.py",
     "cybersoc_arena/curriculum.py",
     "cybersoc_arena/server.py",
