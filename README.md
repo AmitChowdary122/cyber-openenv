@@ -114,15 +114,52 @@ from "Novice analyst" once its rolling mean crosses each tier's threshold.*
 held-out episodes per bar). Note the +1.50 lift on `benign_scan` and
 the consistent (if smaller) gains on all six scenarios.*
 
-A second, larger-scale training pass with **TRL `GRPOTrainer` + Qwen2.5-0.5B-Instruct +
-LoRA** is provided in two flavours:
+### GRPO on Qwen2.5-1.5B-Instruct (HF Jobs L40S, ~2 hr)
 
-- [`notebooks/CyberSOC_Arena_GRPO.ipynb`](notebooks/CyberSOC_Arena_GRPO.ipynb)
-  -- runs end-to-end on a free Colab T4 in ~25 minutes.
-- [`scripts/train_hf_job.py`](scripts/train_hf_job.py) +
-  [`scripts/run_hf_job.sh`](scripts/run_hf_job.sh)
-  -- launches the same run on Hugging Face Jobs (`hf jobs uv run --flavor t4-medium ...`)
-  using the $30 hackathon credit. PEP-723 inline deps; ~10 minutes.
+A second, larger-scale training pass with **TRL `GRPOTrainer` +
+Qwen2.5-1.5B-Instruct + LoRA (r=16, alpha=32)** ran on a Hugging Face Jobs
+**L40S 48GB** for ~2 hours (480 prompts x 3 epochs x 8 generations =
+360 logged GRPO steps), driven directly off the live `CyberSOCEnv` as the
+reward source. Training reward climbed from a starting mean near **-0.23**
+to a steady **+0.15 to +0.40** band by epoch 2.5+.
+
+Per-scenario held-out greedy rollout (4 episodes per scenario, same seeds
+before and after training):
+
+| Scenario | Qwen2.5-1.5B (BEFORE) | Qwen2.5-1.5B + GRPO (AFTER) | Delta |
+|---|---:|---:|---:|
+| `benign_scan`         | -1.96 | -2.07 | -0.10 |
+| `phishing_lateral`    | -1.99 | -2.00 | -0.01 |
+| `credential_stuffing` | -2.13 | -2.00 | **+0.13** |
+| `data_exfiltration`   | -2.61 | -2.30 | **+0.31** |
+| `multi_stage_chain`   | -2.70 | -2.30 | **+0.40** |
+| `long_horizon_apt`    | -3.30 | -3.30 | 0.00 |
+| **Mean**              | **-2.45** | **-2.33** | **+0.12** |
+
+The lifts concentrate on the harder, multi-evidence scenarios
+(`multi_stage_chain` +0.40, `data_exfiltration` +0.31,
+`credential_stuffing` +0.13) -- exactly the cases where tool discipline and
+cross-host correlation matter. The simple scanner and the 20-step APT are
+flat (the APT's 20-step budget dominates whatever marginal tool-choice gains
+GRPO produces in 360 steps).
+
+Adapter, `training_log.json`, `eval_results.json`, and the three plots
+(`grpo_loss_curve.png`, `grpo_reward_curve.png`, `grpo_baseline_compare.png`)
+are pushed to <https://huggingface.co/amit51/cybersoc-arena-qwen2.5-1.5b-grpo>.
+
+The launcher is one command:
+
+```bash
+# Default: 1x L40S 48GB ($1.80/hr), ~$1.20 of the $30 hackathon credit
+bash scripts/run_hf_job_a100.sh
+
+# Override flavor if you want H200 / A100-large
+FLAVOR=h200 bash scripts/run_hf_job_a100.sh
+```
+
+A free Colab T4 path (Qwen2.5-0.5B-Instruct, ~25 min) is also provided in
+[`notebooks/CyberSOC_Arena_GRPO.ipynb`](notebooks/CyberSOC_Arena_GRPO.ipynb)
+for reviewers without HF compute credits.
 
 ## How the env actually works
 
