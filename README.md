@@ -41,15 +41,17 @@ The Space is running at <https://amit51-cybersoc-arena.hf.space>. From any
 shell with `curl`:
 
 ```bash
-# 1. Spin up an episode (the marquee 20-step APT scenario, fixed seed)
+# 1. Spin up an episode (the marquee 20-step APT scenario, fixed seed).
+#    Note the visible_ips in the response -- you'll target one of them next.
 curl -s -X POST https://amit51-cybersoc-arena.hf.space/reset \
      -H "Content-Type: application/json" \
      -d '{"seed": 314, "scenario_type": "long_horizon_apt"}' | python -m json.tool | head -40
 
-# 2. Take one step (investigate the first visible IP)
+# 2. Take one step (investigate the first visible IP from the reset response above;
+#    with seed=314 the first visible_ip is 10.0.140.228).
 curl -s -X POST https://amit51-cybersoc-arena.hf.space/step \
      -H "Content-Type: application/json" \
-     -d '{"action": {"action_type": "investigate_ip", "ip": "203.0.113.42"}}' \
+     -d '{"action": {"action_type": "investigate_ip", "ip": "10.0.140.228"}}' \
      | python -m json.tool | head -40
 
 # 3. Browse the OpenAPI surface (Swagger UI)

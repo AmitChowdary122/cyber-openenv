@@ -28,8 +28,9 @@ SPACE_REPO = "amit51/cybersoc-arena"
 
 # (path_in_repo, kind) where kind is "file" or "folder"
 OBSOLETE = [
+    # ONLY the old GRPO notebook -- DO NOT delete the notebooks/ folder, the
+    # current Colab demo (notebooks/CyberSOC_Arena_demo.ipynb) lives there.
     ("notebooks/CyberSOC_Arena_GRPO.ipynb", "file"),
-    ("notebooks", "folder"),
     ("scripts/run_hf_job.sh", "file"),
     ("scripts/run_hf_job_a100.sh", "file"),  # renamed to run_hf_job_l40s.sh
     ("PRESENTATION.md", "file"),

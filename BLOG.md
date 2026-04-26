@@ -5,6 +5,7 @@
 Live env: <https://huggingface.co/spaces/amit51/cybersoc-arena>
 Trained adapter + plots + logs: <https://huggingface.co/amit51/cybersoc-arena-qwen2.5-1.5b-grpo>
 Code: <https://github.com/AmitChowdary122/cyber-openenv>
+5-minute Colab demo: [`notebooks/CyberSOC_Arena_demo.ipynb`](https://github.com/AmitChowdary122/cyber-openenv/blob/main/notebooks/CyberSOC_Arena_demo.ipynb)
 
 ---
 
@@ -29,7 +30,7 @@ I picked Tier-2 SOC analysis because it cleanly demands four behaviours that LLM
 3. **Decoy resistance.** Internet scanners look exactly like attackers until you check threat intel. Authorised red-team tools generate the same telemetry as real ones. Backup services scan internal IPs in patterns that mimic lateral movement.
 4. **Knowing when to do nothing.** The single most expensive action in a real SOC is **closing a real incident as benign**. The single most expensive analyst behaviour is **isolating a benign internet scanner.** The reward function makes both costly enough that the model has to learn restraint, not just enthusiasm.
 
-There is a real research line here — LLM-driven SOC playbooks, SOAR copilots, agentic incident response — that is wide open precisely because there are no good benchmarks. CyberSOC Arena is a small step toward filling that gap.
+There is a real research line here -- LLM-driven SOC playbooks, SOAR copilots, agentic incident response -- that is wide open precisely because there are no good benchmarks. CyberSOC Arena is a small step toward filling that gap.
 
 ---
 
@@ -46,7 +47,7 @@ Every reset draws a fresh, randomised scenario from one of **six archetypes**:
 | `multi_stage_chain` | 12 | 4 | Recon -> exploit -> persist -> exfil short kill chain |
 | `long_horizon_apt` | **20** | **5** | Full multi-phase APT with 3 carefully tuned decoys |
 
-The agent sees an alert summary, an asset inventory, a step budget, the evidence revealed so far (text only — *never* the hidden `confirms_attacker` weights), the action history, and a small slice of background noise. On every step it emits one of **9 tools**:
+The agent sees an alert summary, an asset inventory, a step budget, the evidence revealed so far (text only -- *never* the hidden `confirms_attacker` weights), the action history, and a small slice of background noise. On every step it emits one of **9 tools**:
 
 ```
 investigate_ip       query_logs            inspect_endpoint
@@ -60,7 +61,7 @@ The first five are investigative; the last four terminate the episode.
 
 LLMs left to their own devices in tool-use environments do two pathological things: they spam the same tool repeatedly because a partial reward is easier to grab than a full one, and they commit to terminal actions early because exploration is expensive. The reward function is built to make both unprofitable:
 
-- **+0.20 x weight** for new attacker-confirming evidence (so investigation pays off — but only for *new* findings)
+- **+0.20 x weight** for new attacker-confirming evidence (so investigation pays off -- but only for *new* findings)
 - **+0.05 x weight** for evidence on the *decoys* (still positive, because exploration is good and the agent shouldn't be punished for running a tool that returned signal)
 - **+0.20** correlation bonus when `correlate_events` lands on a real attacker pair
 - **-0.05** per step (so dithering costs)
@@ -68,10 +69,10 @@ LLMs left to their own devices in tool-use environments do two pathological thin
 - **-0.30** premature-decision penalty if the agent commits a terminal action with fewer than 2 evidence pieces
 - **+1.50** for a correct `identify_attacker` or `isolate_host`, **-1.50** for the wrong one
 - **+1.20** for a correct `close_as_benign`, **-1.50** for closing a real incident as benign (the single most punished action, exactly as in a real SOC)
-- **+0.30** evidence-quality bonus that *only* activates when the agent has gathered >=3 attacker-confirming pieces — so attribution-with-no-evidence doesn't pay
+- **+0.30** evidence-quality bonus that *only* activates when the agent has gathered >=3 attacker-confirming pieces -- so attribution-with-no-evidence doesn't pay
 - All per-step rewards clipped to **[-2, 2]** so a single bad action cannot poison a GRPO batch
 
-Crucially, the breakdown is exposed as a `StepReward(value, breakdown)` with named components, so the reward is composable rather than a single opaque scalar. I wrap that machinery in a real `openenv.core.rubrics.Rubric` tree (`cybersoc_arena.rubric.CyberSOCRubric`) — 17 introspectable leaves across two named subtrees (`step`, `terminal`) — so anyone using the env can walk the tree, pull a single component by dotted path (e.g. `rubric.get_rubric("terminal.wrong_benign_close")`), or wrap leaves in `WeightedSum` / `Gate` containers for ablation studies, without touching env code.
+Crucially, the breakdown is exposed as a `StepReward(value, breakdown)` with named components, so the reward is composable rather than a single opaque scalar. I wrap that machinery in a real `openenv.core.rubrics.Rubric` tree (`cybersoc_arena.rubric.CyberSOCRubric`) -- 17 introspectable leaves across two named subtrees (`step`, `terminal`) -- so anyone using the env can walk the tree, pull a single component by dotted path (e.g. `rubric.get_rubric("terminal.wrong_benign_close")`), or wrap leaves in `WeightedSum` / `Gate` containers for ablation studies, without touching env code.
 
 ---
 
@@ -83,7 +84,7 @@ The `long_horizon_apt` scenario is the one I'm proudest of. It's a full kill cha
 - A noisy internal backup service (scans internal IPs in patterns that mimic lateral movement)
 - An external Shodan crawler (queries the edge gateway with attacker-like fingerprinting)
 
-Each decoy has non-zero evidence weight — they show up in the right tools and look real — so the obvious early-game moves all converge on the wrong attribution. This was the design decision that pushed the env from "tool-use puzzle" to "real cognitive test." A heuristic SOC playbook walks this scenario in 13 steps to a correct +2.06 attribution; a freshly-initialised Qwen2.5-1.5B walks it to -3.30.
+Each decoy has non-zero evidence weight -- they show up in the right tools and look real -- so the obvious early-game moves all converge on the wrong attribution. This was the design decision that pushed the env from "tool-use puzzle" to "real cognitive test." A heuristic SOC playbook walks this scenario in 13 steps to a correct +2.06 attribution; a freshly-initialised Qwen2.5-1.5B walks it to -3.30.
 
 ---
 
@@ -102,9 +103,9 @@ Each decoy has non-zero evidence weight — they show up in the right tools and 
 
 The visualisation of the mechanism, walking an agent through all 6 tiers:
 
-![Curriculum unlocks all 6 tiers](assets/curriculum_progress.png)
+![Curriculum unlocks all 6 tiers](https://github.com/AmitChowdary122/cyber-openenv/raw/main/assets/curriculum_progress.png)
 
-The agent self-promotes from "Novice analyst" to "APT hunter" without any external scheduler — the curriculum reads only the rolling reward and unlocks scenarios as mastery is demonstrated. Drop-back is supported (`ratchet=False`) but the default is monotone for benchmarking purposes. ~230 lines of Python, no extra dependencies.
+The agent self-promotes from "Novice analyst" to "APT hunter" without any external scheduler -- the curriculum reads only the rolling reward and unlocks scenarios as mastery is demonstrated. Drop-back is supported (`ratchet=False`) but the default is monotone for benchmarking purposes. ~230 lines of Python, no extra dependencies.
 
 This is the hackathon's Theme 4 ("agents that drive their own capability growth") implemented without any clever ML, just the right environment-side machinery.
 
@@ -123,7 +124,7 @@ A softmax over 4 *meta-actions* (INVESTIGATE / CORRELATE / IDENTIFY / CLOSE_BENI
 | Random meta-policy | -1.57 | 8.3% | -0.32 |
 | **REINFORCE-trained** | **-1.23** | **16.7%** | **+1.17** |
 
-The aggregate hides where the policy actually shines: on `benign_scan` it goes from -0.32 to **+1.17**. It learned the most expensive analyst skill — **don't isolate the internet scanner** — in 12 seconds of CPU.
+The aggregate hides where the policy actually shines: on `benign_scan` it goes from -0.32 to **+1.17**. It learned the most expensive analyst skill -- **don't isolate the internet scanner** -- in 12 seconds of CPU.
 
 ### 2. TRL GRPOTrainer + Qwen2.5-1.5B-Instruct + LoRA (2 hr, L40S)
 
@@ -139,7 +140,7 @@ The reward curve at the top of this post is from this run.
 
 ### Why the GRPO loss curve goes up
 
-If you look at the loss plot in the model card you'll notice it's *climbing*, not falling. **For GRPO, that is the correct signal.** The loss is the KL-regularised policy-gradient surrogate — it measures how far the policy has drifted from the frozen reference. A flat-zero loss would mean the policy isn't updating. The combination *loss going up + reward going up* is exactly the shape of a working RL run; the magnitudes here (1e-4 to 8e-4) are normal LoRA-GRPO scale.
+If you look at the loss plot in the model card you'll notice it's *climbing*, not falling. **For GRPO, that is the correct signal.** The loss is the KL-regularised policy-gradient surrogate -- it measures how far the policy has drifted from the frozen reference. A flat-zero loss would mean the policy isn't updating. The combination *loss going up + reward going up* is exactly the shape of a working RL run; the magnitudes here (1e-4 to 8e-4) are normal LoRA-GRPO scale.
 
 ### The before/after table
 
@@ -155,7 +156,7 @@ I ran a held-out greedy rollout (4 episodes per scenario, identical seeds) befor
 | `long_horizon_apt`    | -3.30 | -3.30 | 0.00 |
 | **Mean**              | **-2.45** | **-2.33** | **+0.12** |
 
-The lifts concentrate exactly where the cognitive demand is highest — multi-stage chains, slow exfil, credential stuffing — i.e., the scenarios that need cross-host correlation and tool discipline. The simple scanner is essentially flat (the untrained model is already close to its local optimum on a single-host scenario), and the 20-step APT is too long for 360 GRPO steps to crack: the budget dominates whatever marginal tool-choice gains the policy makes.
+The lifts concentrate exactly where the cognitive demand is highest -- multi-stage chains, slow exfil, credential stuffing -- i.e., the scenarios that need cross-host correlation and tool discipline. The simple scanner is essentially flat (the untrained model is already close to its local optimum on a single-host scenario), and the 20-step APT is too long for 360 GRPO steps to crack: the budget dominates whatever marginal tool-choice gains the policy makes.
 
 ---
 
@@ -175,11 +176,11 @@ Three things actually surprised me:
 
 The reward function is a single function in the env, but the *values* of its 17 components were tuned over many short REINFORCE runs (12 seconds of CPU each) before the L40S GRPO commit. The principles I converged on:
 
-1. **The single most punished action must be the single most expensive real-world mistake.** In a real SOC, **closing a real incident as benign** loses the most money (intrusion goes undetected for hours/days). That gets the largest negative magnitude in the env: `wrong_benign_close = -1.50`. By contrast, isolating a benign host (`wrong_isolate = -1.00`) is bad but reversible — you can un-isolate within minutes. The *ratio* between these two penalties matters more than their absolute size.
+1. **The single most punished action must be the single most expensive real-world mistake.** In a real SOC, **closing a real incident as benign** loses the most money (intrusion goes undetected for hours/days). That gets the largest negative magnitude in the env: `wrong_benign_close = -1.50`. By contrast, isolating a benign host (`wrong_isolate = -1.00`) is bad but reversible -- you can un-isolate within minutes. The *ratio* between these two penalties matters more than their absolute size.
 
 2. **Per-step shaping must be small enough not to overwhelm the terminal signal.** Initial attempts had `step_penalty = -0.20` and `new_attacker_evidence = +1.00`; the agent learned to spam high-reward investigations and never commit. Dropping shaping by 5x (`-0.05` and `+0.20`) restored the gradient toward terminal actions. Rule of thumb that worked: **shaping reward magnitudes should be ~10x smaller than terminal reward magnitudes.**
 
-3. **Decoy reward must be *positive but small*.** A naive design gives 0 reward for inspecting a decoy — but then the agent learns to *avoid* exploring anything it can't pre-classify, which catastrophically over-fits in the multi-stage scenarios. Setting `decoy_evidence = +0.05 * weight` (vs `+0.20 * weight` for real evidence) restored exploration without rewarding wrong attribution. **Exploration of decoys is a feature; attribution of decoys is a bug.**
+3. **Decoy reward must be *positive but small*.** A naive design gives 0 reward for inspecting a decoy -- but then the agent learns to *avoid* exploring anything it can't pre-classify, which catastrophically over-fits in the multi-stage scenarios. Setting `decoy_evidence = +0.05 * weight` (vs `+0.20 * weight` for real evidence) restored exploration without rewarding wrong attribution. **Exploration of decoys is a feature; attribution of decoys is a bug.**
 
 4. **The evidence-quality bonus only fires at >=3 attacker pieces** (`evidence_quality_bonus = +0.30`). Earlier versions awarded it at >=1, which let the agent identify attackers from a single weak signal. The `>=3` threshold makes it cheap to reach on the long-horizon scenarios (where there's plenty of evidence to gather) and impossible to reach on benign ones (where there *is* no attacker evidence). This nudges the agent toward gathering more evidence before committing.
 
@@ -224,6 +225,10 @@ pip install -e .
 python train_reinforce.py --episodes 3000
 ```
 
+For a 5-minute see-and-verify Colab demo (no training, just exercises the env + loads the trained adapter's plots):
+
+- [`notebooks/CyberSOC_Arena_demo.ipynb`](https://github.com/AmitChowdary122/cyber-openenv/blob/main/notebooks/CyberSOC_Arena_demo.ipynb) -- runs end-to-end on free Colab CPU.
+
 ---
 
 ## What's next
@@ -231,17 +236,17 @@ python train_reinforce.py --episodes 3000
 If I had another week:
 
 - **Adaptive attackers.** Have the scenario's attacker react to the agent's isolation moves so the kill chain branches mid-episode. The current scenarios are stochastic but the attacker is non-reactive.
-- **Multi-agent.** Blue-team analyst vs. red-team simulator, both trained against the same arena. The infrastructure is already there — `CyberSOCAsyncClient` makes concurrent rollouts trivial.
-- **Bigger curriculum.** Insider threat, supply-chain compromise, ransomware deployment, cloud-IAM abuse — each as its own tier ladder.
+- **Multi-agent.** Blue-team analyst vs. red-team simulator, both trained against the same arena. The infrastructure is already there -- `CyberSOCAsyncClient` makes concurrent rollouts trivial.
+- **Bigger curriculum.** Insider threat, supply-chain compromise, ransomware deployment, cloud-IAM abuse -- each as its own tier ladder.
 - **Bigger model.** Qwen2.5-7B on H200 with the same recipe. Would expect the `long_horizon_apt` flat line in the before/after table to actually move.
 
 ---
 
 ## Hackathon themes hit
 
-- **Theme 2 — Super Long-Horizon Planning.** `long_horizon_apt` is a 20-step APT across 5 hosts with a 5-phase kill chain and 3 carefully tuned decoys.
-- **Theme 3.1 — World Modeling / Professional Tasks.** Real SOC tool use in a partially-observable enterprise environment: 9 tools, 6 stochastic scenarios, hidden ground truth.
-- **Theme 4 — Self-Improvement.** `CurriculumEnv` is an adaptive 6-tier curriculum that unlocks scenarios as the agent's rolling reward crosses thresholds. The agent drives its own capability growth.
+- **Theme 2 -- Super Long-Horizon Planning.** `long_horizon_apt` is a 20-step APT across 5 hosts with a 5-phase kill chain and 3 carefully tuned decoys.
+- **Theme 3.1 -- World Modeling / Professional Tasks.** Real SOC tool use in a partially-observable enterprise environment: 9 tools, 6 stochastic scenarios, hidden ground truth.
+- **Theme 4 -- Self-Improvement.** `CurriculumEnv` is an adaptive 6-tier curriculum that unlocks scenarios as the agent's rolling reward crosses thresholds. The agent drives its own capability growth.
 
 ---
 
